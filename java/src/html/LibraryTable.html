@@ -1,0 +1,44 @@
+<html>
+<h3>Library Table</h3>
+Top row of buttons:
+<ul type="circle">
+<li>Select one or more rows followed by "Genes" or "Trans", which will show the 
+table of library counts for all gene(s) or transcript(s).
+</ul>
+
+
+<h4>Column descriptions</h4>
+The database was built using a configuration file, which defines the "Lib Name" and conditions.
+<br>
+<table border=0>
+<tr><td><i>Column name</i><td><i>Description</i>
+<tr><td valign="top">LIBid<td>mySQL identifier, used internally
+<tr><td valign="top">Lib Name<td>The library abbreviation.
+<tr><td valign="top"><i>conditions</i><td>One or two columns with the condition names, e.g. Strain and Tissue
+<tr><td valign="top">#Reps<td>Number of replicas that were sequenced for the library.
+<tr><td valign="top">SNP Ref<td>Coverage for the reference allele.
+<tr><td valign="top">SNP Alt<td>Coverage for the alternative allele.
+<tr><td valign="top">SNP All<td>Total Coverage.
+
+<tr><td valign="top">Read Ref<td>Number of reads assigned to reference; if loaded<sup>1,2</sup>
+<tr><td valign="top">Read Alt<td>Number of reads assigned to alternative; if loaded<sup>1,2</sup>
+<tr><td valign="top">Read All<td>Total number of reads; if loaded<sup>1,2</sup>
+<br>Note that some genes or trans have no Ref/Alt difference  
+<br>in which case the Ref/Alt counts will be zero. 
+</table>
+<p>
+<sup>1</sup>These columns are not shown if the corresponding data is not in the database.
+<br><sup>2</sup>Programs such as
+eXpress (Roberts A, Pachter L (2013) Nat Methods 10: 71-73.) 
+compute the estimated number of total
+<br>reads for the reference and alternative by taking into account the variants. 
+
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending); left click or second right click (ascending).
+<li>To change the columns shown, select "Select" (next to the "Columns" label at the bottom of the window). 
+<br>Selecting/deselecting a column immediately displays or removes it.
+<li>When a new table is generated, it uses the last selected column settings. 
+</ol>
+</html>

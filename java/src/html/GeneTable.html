@@ -1,0 +1,53 @@
+<html>
+<h3>Gene Table</h3>
+<h4>Top row of buttons</h4>
+<table border=0>
+<tr><td><i>Button</i><td><i>Description</i>
+<tr><td>Libs<td>Show the table of library counts for the selected gene(s).
+<tr><td>Variants<td>Show the table of variants for the selected gene(s).
+<tr><td>Trans<td>Show the table of transcripts for the selected gene(s).
+
+<tr><td>Draw<td>Draw the selected gene with its transcripts and variants.
+<tr><td>Copy Gene<td>Copy the gene name from the selected row so that it can be pasted.
+<tr><td>Export Table<td>Export the content of the table to a file, where the order of
+the columns and rows are maintained.
+</table>
+
+<h4>Column Descriptions</h4>
+<i>Basic Selection</i>
+<br>The following table only explains the non-obvious columns.
+Some data is optional, so may not be available.
+<table border=0>
+<tr><td><i>Column name</i><td><i>Description</i>
+<tr><td  valign="top">GENEid<td>mySQL identifier, used internally
+<tr><td valign="top">Gene<td>Gene name
+<tr><td valign="top">Ident<td>Alternative identifier, e.g. Ensembl
+<tr><td valign="top">Descript<td>Description, e.g. from NCBI
+<tr><td valign="top">Synonyms<td>Alternatives names
+<tr><td valign="top">#UniqExon<td>Number of unique exons from the transcripts for this gene
+<tr><td valign="top">#Libs<td>Number of libraries that have read coverage of at least 1.
+<tr><td valign="top">#LibAI<td>Number of libraries that have AI p-value&lt;0.05.
+<tr><td valign="top">#SNPCov<td> Number of SNPs with at least one library with Ref+Alt&gt;=20.
+<tr><td valign="top">#Mis<td>Number of missense SNPs
+
+</table>
+
+<p><i>Library Group Selection</i>
+<ul type="circle">
+<li>Select at least one option from each row, then select "Apply Selection".
+<li>Ratio=Ref:Alt, Score=Ref/(Ref+Alt), Pval=p-value
+</ul>
+
+<p><i>Library Ref:Alt Selection</i>
+<ul type="circle">
+<li>Individually select libraries for Ratio, Score and/or Pvalue.
+</ul>
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending); left click or second right click (ascending).
+<li>To change the columns shown, select "Select" (next to the "Columns" label at the bottom of the window). 
+<br>Selecting/deselecting a column immediately displays or removes it.
+<li>When a new table is generated, it uses the last selected column settings. 
+</ol>
+</html>

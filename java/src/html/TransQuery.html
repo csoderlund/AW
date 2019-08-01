@@ -1,0 +1,122 @@
+<html>
+<h3>Trans Query</h3>
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Top buttons</i><td><i>Description</i>
+<tr><td valign="top">Search Trans<td> If no filters are selected, show all transcripts.
+<br>With filters, shows the filtered set of transcripts.
+<tr><td valign="top">Limit<td> Set filters that will limit the amount of
+output to transcripts that may be of most interest.
+<tr><td valign="top">Clear<td>Clear all  filters.
+</table>
+<i>Except for Basic, all filters are applied.</i>
+<hr>
+<sup>1</sup>If an exact match is found, it is displayed. 
+Otherwise, the search will return anything that contains the substring. 
+<br>Searches are not case-sensitive.
+Putting a "*" at the end of the string returns all transcripts with that prefix.
+<br><sup>2</sup>Optional data, may not be in the database.
+<br><sup>3</sup>SNP coverage is the summed coverage of all SNPs for the transcript.
+<br>Read count (optional) is the total read count for the transcript.
+
+<h4>Basic</h4>
+Only one of these can be searched on. All other filtered are ignored.
+
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+
+<tr><td valign="top">Trans name<td> 
+Enter a substring<sup>1</sup>  or a comma delimited list of exact names. 
+<br>Or, Load a file of exact names, where there should be one name per line.
+<br>NOTE: If you paste into this (e.g. Copy Gene) from table then paste here,
+you may need to use the Cntl-V to paste.
+
+<tr><td valign="top">Identifier<td> (e.g. Ensembl) Same instructions as for Trans name, but Identifiers are used.
+</table>
+
+<h4>General</h4>
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+<tr><td valign="top">Description<td> Enter a substring<sup>1</sup> from the Descript<sup>2</sup> column, e.g. T-cell.
+
+<tr><td valign="top">Chromosome<td> Enter a number or a letter (not prefixed by 'Chr'). 
+
+<tr><td valign="top">Trans with<td>highest coverage for gene (Rank=1)
+<br>i.e. Rank column, transcripts for a gene are ranked according to number of reads
+<br>(or SNP coverage if "Reads" do not exist).
+<tr><td valign="top">Trans with<td>at least one library AI (p&lt;0.05)
+<br>AI = Allele Imbalance. 
+<br>Note: To set lower p-values or select specific libraries, use the "Library" filter section.
+
+
+<tr><td valign="top">OD Remark<td> Enter odSNP or odRep (corresponds to column odRmk)
+<br>See the Trans table Help for more information, briefly:
+<ul type="circle">
+<li>odSNP: The transcript has one or more SNPs with a significant p-value in the 
+<br>opposite direction from the transcript. 
+<li>odRep:The transcript has one or more libraries where the summed SNP replicas 
+<br>are in opposite directions. For example, if there are 4 replicas of 
+<br>(90:120, 100:85, 100:70, 125:75), the first would be flagged. 
+</ul>
+<tr><td valign="top">Has odRmk<td> Shows any transcript with a OD remark. 
+<br>This is ignored if a remark is entered into the OD text field.
+
+<tr><td valign="top">No odRmk<td> Don't show any transcript with a OD remark. 
+<br>This is ignored if a remark is entered into the OD text field.
+
+<tr><td valign="top">GTK Remark<sup>2</sup><td> Enter ATG, Stop, etc (corresponds to column gtkRmk).
+<br>The remarks are in regard to whether there is a start_codon (for brevity, ATG), etc.
+
+<tr><td valign="top">Has gtkRmk<td> Shows any transcript with a GTK remark. 
+<br>This is ignored if a remark is entered into the GTK text field.
+
+<tr><td valign="top">No gtkRmk<td> Don't show any transcript with a GTK remark. 
+<br>This is ignored if a remark is entered into the GTK text field.
+</table>
+
+
+<h4>Variant</h4>
+
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+<tr><td valign="top">Cov(&gt;=20)<td>Has at least one SNP with at least one library with at least 20 reads.
+<tr><td valign="top">AI(&lt;0.05)<td>Has at least one SNP with at least one AI library.
+<tr><td valign="top">#SNP<td> Enter a number to only show transcripts with at 
+least that many SNPs.
+<br>Note: the database contains all transcripts, even those without SNPs.
+
+<tr><td valign="top">#Coding<td> Enter a number to only show transcripts with 
+at least that many coding SNPs.
+<tr><td valign="top">#Missense<td>  Enter a number to only show transcripts with 
+at least that many missense SNPs. 
+<tr><td valign="top">#Damaged<td> Enter a number to only show transcripts with 
+at least that many damaged SNPs. 
+<br>Note: A damaged SNP has SIFT=deleterious or High in its Effect column.
+<tr><td valign="top">Indel<td> Select "Has Indel" for transcripts with one or more indels.
+<br>Select "No Indel" for transcripts with no indels.
+</table>
+
+<h4>Library</h4>
+This search is not performed unless the left hand box(es) do not contain "empty list".
+<br>Select from right box followed by "&lt;", or select all with "&lt;&lt;".
+
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+
+<tr><td valign="top">Coverage<td> Summed coverage SNPs for the transcripts
+<br>Read<sup>3</sup> this is the read "count" for the transcript.
+<br>Enter either or both limits (&lt;= and &gt;=), e.g. &gt;=20 and &lt;=100
+
+<tr><td valign="top">Score<td> Ref/(Ref+Alt). 
+<br>A value near 0 is Alt&gt;Ref and a value near 1 is Ref&gt;Alt.
+<br>Enter either or both limits, e.g. &lt;=0.2 or &gt;=0.8.
+
+<tr><td valign="top">AI p-val<td> The p-value from the binomial test (e.g. 0.001).
+<br>Select Ref&gt;Alt or Alt&gt;Ref to see the corresponding set.
+
+<tr><td valign="top">Libraries<td>Selecting "All" is very strict, as all libraries must pass the filters.
+<br>Selecting "Any" requires one of the selected libraries to pass for a transcript.
+</table>
+<p>Coverage, Score and Pvalue can be simultaneously searched on
+for both SNP coverage and Read count.
+
+</html>

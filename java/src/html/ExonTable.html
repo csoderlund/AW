@@ -1,0 +1,40 @@
+<html>
+<h3>Exon Table</h3>
+<h4>Top row of buttons</h4>
+<table border=0>
+<tr><td><i>Button</i><td><i>Description</i>
+<tr><td>Variants<td>Show the table of variants for the selected exon(s).
+<tr><td>Export Table<td>Export the content of the table to a file, where the order of
+the columns and rows are maintained.
+</table>
+
+<h4>Column Descriptions</h4>
+
+<table border=0>
+<tr><td><i>Column name</i><td><i>Description</i>
+<tr><td  valign="top">EXONid<td>mySQL identifier, used internally
+<tr><td  valign="top">Trans<td>The transcript name; useful if multiple transcript had been selected.
+<tr><td  valign="top">EXON<td>Exon number from the GTF file (there may be duplicate numbers for !CDS).
+<tr><td  valign="top">#SNP<td>Number of SNPs in the exon.
+<tr><td  valign="top">#Indel<td>Number of Indels in the exon.
+<tr><td  valign="top">Start<td>Start relative to chromosome.
+<tr><td  valign="top">End<td>End relative to chromosomes.
+<tr><td  valign="top">Rstart<td>Start relative to transcript.
+<tr><td  valign="top">Rend<td>End relative to transcript.
+<tr><td  valign="top">Len<td>Length of exon.
+<tr><td  valign="top">NextDiff<td>Going 5' to 3', difference between the end and next start.
+<br>This will generally be intron length, except where there are non-coding exons.
+<tr><td  valign="top">Frame<td>The frame will be -1 if it non-coding.
+<tr><td  valign="top">Remark<td>!CDS is non-coding. The rest of the remarks are about the location
+<br>of the ATG and Stop relative to the exon. 
+</table>
+
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending); left click or second right click (ascending).
+<li>To change the columns shown, select "Select" (next to the "Columns" label at the bottom of the window). 
+<br>Selecting/deselecting a column immediately displays or removes it.
+<li>When a new table is generated, it uses the last selected column settings. 
+</ol>
+</html>

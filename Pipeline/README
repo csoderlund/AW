@@ -1,0 +1,144 @@
+This directory only contains the scripts for the pipeline. 
+Download AW_Pipeline.tar.gz for the demo data and scripts.
+
+****   AW Pipeline Scripts and Demo Data ************
+
+Contents of AW_Pipeline.tar.gz: 
+
+scripts: 	pipeline scripts (mostly perl, one bash)
+ext:		3rd party tools (e.g. tophat) called by the scripts
+
+reads:		demo NGS read set
+genome:		demo genome (chr19 of mouse)
+annotation:	demo annotation file
+variants:	demo variant file 
+
+transcripts:	demo transcripts for reference and alt alleles 
+				(these are built automatically by AW when a 
+				project is loaded; see pipeline stages below)
+
+============================================================
+
+DEMO PIPELINE COMMAND SUMMARY:
+
+perl scripts/GSmask.pl -i genome/ -v variants/chr19.exon.snps.vcf
+perl scripts/QC.sh -d reads
+perl scripts/Trim.pl -d reads -p -P "HEADCROP:5 LEADING:30 TRAILING:30 MINLEN:30"
+perl scripts/QC.sh -d TRIM/Results
+perl scripts/Align.pl -g GSMASK/Results -r TRIM/Results -p -a annotation/chr19.gtf -t 10
+perl scripts/snpASE.pl -i TOPHAT/Results -v variants/chr19.exon.snps.vcf
+perl scripts/transASE.pl -r transcripts/ntRef.fa -a transcripts/ntAlt.fa -p -i TRIM/Results
+
+============================================================
+
+PIPELINE CONVENTIONS:
+
+* Running any script with no parameters gives its help text
+* All scripts create a capitalized directory (e.g., TRIM) containing output
+* The primary outputs are in a subdirectory "Results" (e.g.,TRIM/Results)
+* All scripts create a Summary.html with collected run statistics
+* The primary input to one script is usually the Results directory from a prior
+* Most scripts have a "-t" flag for number of threads/processes to use. 
+* If you wish to make more detailed parameter changes to the underlying tools
+  such as tophat, you can do this easily by editing variables at the top of the scripts
+* Likewise, you can edit path variables to point to different versions of the tools
+
+============================================================
+
+FILE NAMES AND PAIRING:
+
+AW needs to be able to identify your samples using one or two condition tags,
+a replicate number, and a pairing suffix. It will be easiest to get the
+read file names right at the outset, rather than changing output file names later. 
+
+For example the demo file name "NYfBr1_R1.fq" consists of four parts:
+
+1. NYf		first "condition" tag, identifies the strain ("New Young F1 mouse")
+2. Br		second "condition" tag, in this case identifying tissue (Brain)
+3. 1		replicate number, if your data has replicates. 
+4. _R1		forward read tag (_R2 for reverse). 
+
+Name your raw input reads following this model to avoid complications later. 
+(If you really want to use a different suffix for forward/reverse, you can
+edit a variable at the beginning of the scripts to match your convention.)
+
+============================================================
+
+PIPELINE STAGES:
+
+1. Genome masking (GSmask.pl)
+
+Mask the SNP locations of the genome to reduce the mapping bias when mapping 
+both ref- and alt-allele transcripts to it. 
+
+2. Sequence quality check (QC.sh)
+
+Check the base quality of the reads to determing if trimming is necessary
+and guide trim parameter choices. Re-check after trimming.  See
+FastQC documentation for details on interpreting the output. 
+
+3. Trimming (Trim.pl)
+
+Calls Trimmomatic to trim reads. You must provide the trim settings based
+on details of your sequences and QC output. See Trimmomatic documentation
+for settings. 
+If your sequences are paired, use the "-p" flag. 
+
+4. Alignment (Align.pl)
+
+Calls Tophat2 to align (trimmed) reads to (masked) genome.  
+If your sequences are paired, use the "-p" flag. 
+
+5. SNP coverage (snpASE.pl)
+
+From the bam files of the previous alignment, calculate the number of reads
+covering each SNP locus, and having either the ref or the alt allele. 
+This is one measure of allele-specific expression which can be loaded to AW. 
+
+6. Build Demo AW (runAW)
+
+At this point, there is enough data to build an AW project.
+Building the project will also generate the ref and alt transcripts which
+you will need to compute the second measure of expression and ASE. 
+
+7. eXpress (transASE.pl)
+
+This script uses STAR and eXpress to compute (estimated) isoform-specific 
+abundance measures for a given set of transcripts. 
+If you want allele-specific abundances, you must supply both ref
+and alt versions of the transcripts; these are generated automatically
+when building an AW project. 
+
+8. Finalize AW (buildAW)
+
+The last step is to add the eXpress abundance counts to AW, as the
+second measure of ASE. The counts are in EXPRESS/Results and may
+be added using the buildAW command. 
+
+-------------------------------------------------
+SNP calling:
+
+Say the demo variant file did not exist, the following commands would be necessary:
+
+1. perl scripts/Trim.pl -d reads -p -P "LEADING:30 TRAILING:30 HEADCROP:5 MINLEN:30"
+Trims the reads, producing TRIM/Results (for your database, run QC before and after).
+
+2. perl scripts/Align.pl -g genome  -r TRIM/Results -p -a annotation/chr19.gtf -t 10
+Aligns the trimmed reads to the genome, producing TRIM/Results
+
+3. perl scripts/Variants.pl -g genome -i TOPHAT/Results -t 01 -m 5 
+Call the variants, producing VARIANTS/combined.vcf. 
+- Check the file. If there are no results, then run VarComb.pl with a lower -m value.
+  From the VARIANTS directory using an appropriate n value:
+  ../scripts/VarComb.pl -t 10 -m n
+  
+4. perl scripts/GSmask.pl -i genome/ -v VARIANTS/combined.vcf
+
+5. Then complete the steps:
+perl scripts/Align.pl -g GSMASK/Results -r TRIM/Results -p -a annotation/chr19.gtf -t 10
+perl scripts/snpASE.pl -i TOPHAT/Results -v variants/chr19.exon.snps.vcf
+perl scripts/transASE.pl -r transcripts/ntRef.fa -a transcripts/ntAlt.fa -p -i TRIM/Results
+
+
+
+ 

@@ -1,0 +1,113 @@
+<html>
+<h3>Transcript Table</h3>
+
+<h4>Top row of buttons</h4>
+<table border=0>
+<tr><td><i>Buttons</i><td>Description</i>
+<tr><td valign="top">Libs <td>Show the table of library counts for the selected transcript(s).
+<br>If no SNPs are not covered by reads, its #Libs will be zero.
+<tr><td valign="top">Variants<td> Show the table of variants that are found in the selected transcript(s).
+<tr><td  valign="top">Exons<td> Show the table of exons that are found in the selected transcript(s).
+<tr><td valign="top">Draw<td> Draw the align of transcript exons and variants relative to the parent gene.
+<tr><td valign="top">Align<td> Display a pop-up a window with the alignment, where '+' is blossum62 >0,
+'x' is blossum62<=0, and '-' is gap.
+<tr><td valign="top">Export...
+<td>A popup window will display the following:
+<ol>
+<li>Table of columns - writes the table to file.
+<li>Parental proteins - writes (appends) the Ref and Alt proteins to file.
+<li>Alignment of parental protein - writes (appends) the Ref/Alt alignment.
+<br>Warning: if you select many or allow this to run on all rows in a big table, it will take a long time.
+</ol>
+
+<tr><td valign="top">Copy Trans..<td> Copy the transcript name from the selected row so that it can be pasted.
+<br>Click with the right mouse button to change it to "Copy identifier..", 
+<br>which will copy the Identifier into the clipboard for pasting elsewhere.
+</table>
+
+<h4>Column Description</h4>
+Most columns are obvious by their names. But the following are a few non-obvious.
+<br>Some data is optional, so may not be available.
+
+<br>
+<table border=0>
+<tr><td><i>Column</i><td>Description</i>
+<tr><td valign="top">TRANSid<td>mySQL identifier, used internally
+<tr><td valign="top">GENEid<td>mySQL identifier, used internally. This is useful to show what trans belong to the same gene.
+<tr><td valign="top">Identifier<td>e.g. Ensembl
+<tr><td valign="top">Descript<td>NCBI description (if loaded)
+<tr><td valign="top">Rank<td>The transcripts for a gene are ranked according to the number of reads they have, hence,
+<br>rank=1 provides the best transcript per gene based on this criteria.
+<tr><td valign="top">ATG<td>Start codon.
+<tr><td valign="top">Stop<td>End codon.
+<tr><td valign="top">5'UTR<td>Distance from the start codon (referred to as ATG).
+<br>NOTE: this is ATG-Start, without removing introns within non-coding exons 
+<tr><td valign="top">3'UTR<td>Distance from the end_codon (referred to as Stop).
+<br>NOTE: this is End-Stop, without removing introns within non-coding exons.
+
+<tr><td valign="top">#Libs<td>Number of libraries with coverage of at least one.
+<tr><td valign="top">#LibAI<td>Number of libraries that have AI p-value&lt;0.05.
+<br>Use the library selection to view the p-values for all libraries.
+<tr><td valign="top">#Read<td>Total number of ref+alt across all libraries.
+<tr><td valign="top">#cIndel<td>Number of coding Indels.
+<tr><td valign="top">#cSNPs<td>Number of coding SNPs
+<tr><td valign="top">#SNPCov<td>Number of SNPs with at least one library with Ref+Alt&gt;=20. 
+<tr><td valign="top">#SNPAI<td>Number of SNPs with at least one library with AI p-value&lt;0.05.
+<tr><td valign="top">#Mis<td>Number of missense SNPs.
+<tr><td valign="top">#Damage<td>What is a 'damaged' SNP depends on where the SNP annotation came from.
+<br>For example, it may be an Ensembl Variant Predictor SIFT call, or a snpEFF 'high'.
+
+
+<tr><td valign="top">Length<td>From Start to End.
+<tr><td valign="top">ntLen<td>Spliced transcript length including UTRs (of reference)
+<tr><td valign="top">RefProLen<td>Length of the reference protein.
+<tr><td valign="top">AltProLen<td>Length of the alternate protein.
+<tr><td valign="top">gtkRmk<td>Remarks non-regular coordinates.
+<tr><td valign="top">odRmk<td>Remarks opposite direction replicas or SNPs, as follows:
+<ol type="a">
+
+<li>odSNP Two or more AI (p-value&lt;0.05) SNPs have opposite direction. 
+The 'odSNP:' will be followed by the offending library(s), e.g. odSNP: YfMus.
+
+<br>To view the SNPs:
+<ol type="i">
+<li>Select the transcript followed by "Variant".
+<li>Turn on the RefAlt Ratio and Score columns for the offending library, e.g. YfMus.
+<br>You will see that one or more have the opposite direction sign before their ratio,
+<br>and the score will be in the opposite direction from 0.5. 
+</ol>
+
+<li>odREP The transcript has one or more libs where the summed SNP replicas are in opposite directions.
+<br>For example, if there are 4 replicas of (90:120, 100:85, 100:70, 125:75), 
+the first would be flagged. 
+<br>To see the offending replicas, 
+<ol  type="i">
+<li>Select the transcript, then select "Libs"; 
+<li>From the LibList table, select all libraries followed by "Replica". 
+<li>The offending replica(s) will have a value in the "Rep pval" column, all
+other entries have "--".
+</ol>
+</table>
+
+
+<p><i>Library Group Selection</i>
+<ul type="circle">
+<li>Select at least one option from each row, then select "Apply Selection".
+<li>Ratio=Ref:Alt, Score=Ref/(Ref+Alt), Pval=p-value
+</ul>
+<p><i>Library Ref:Alt Selection</i>
+<ul type="circle">
+<li>Individually select libraries for Ratio, Score and/or Pvalue.
+</ul>
+
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending); left click or second right click (ascending).
+<li>Various columns can be turned on or off by selecting <i>Columns: Select</i> and setting the desired 
+column appropriately. 
+<li>When a new table is generated, it uses the last selected column settings. However, the order
+of columns is not preserved for new tables.
+</ol>
+
+</html>

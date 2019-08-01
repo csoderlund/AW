@@ -1,0 +1,67 @@
+<html>
+<h3>SNP Query</h3>
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Top buttons</i><td><i>Description</i>
+<tr><td valign="top">Search Trans<td> If no filters are set, show all variants.
+<br>With filters, shows the filtered set of variants.
+<tr><td valign="top">Limit<td> Set filters that will limit the
+output to variants that may be of most interest.
+<tr><td valign="top">Clear<td>Clear all  filters.
+</table>
+
+<i>Except for Basic, all filters are applied.</i>
+<hr>
+<sup>1</sup>If an exact match is found, it is displayed. 
+Otherwise, the search will return anything that contains the substring. 
+<br>Searches are not case-sensitive.
+Putting a "*" at the end of the string returns all transcripts with that prefix.
+<br><sup>2</sup>Optional data, may not be in the database.
+
+<h4>Basic</h4>
+<table border=0 cellpadding=5>
+<tr><td valign="top">rsID<td>Enter a substring<sup>1</sup> or a list of comma separate names.
+<br>If the variant is in dbSNP, then the name is the rsID<sup>2</sup>.
+<br>If the variant is new, then it is "SNP" followed by a number or "Indel" followed by a number.
+</table>
+
+<h4>Attributes</h4>
+<table border=0 cellpadding=5>
+<tr><td valign="top">EffectList<td>Enter a substring<sup>1</sup>  or a list of comma separated names.
+<br>A variant may have one or more functions as it can be in more than 
+one transcript. 
+<br>An example function is "missense".
+<tr><td valign="top">Variant<td>The type of variant, e.g. select SNP and it will only show SNPs.
+<tr><td valign="top">Coding<td>The variant is in a coding exon.
+
+<tr><td valign="top">SNP<td>Missense are often the interesting SNPs as they change an amino acid character.
+<br>Damaging:
+<br>If the annotation is from Ensembl Variant Predictor, damaging indicates SIFT=deleterious.
+<br>If the annotation is from snpEFF, the damaging are the ones that are marked as 'high'.
+<br>(Note: the database could have been built with a snpEFF file that is augmented with SIFT predictions).
+
+<tr><td valign="top">SNP Cov(&gt;=20)<td>SNPs with at least one library with coverage&gt;=20.
+<tr><td valign="top">SNP AI(&lt;0.05)<td>SNPs with at least one librariy with allele imbalance (AI p&lt;0.05)
+</table>
+
+<h4>Library</h4>
+This search is not performed unless the left hand box(es) do not contain "empty list".
+<br>Select from right box followed by "&lt;", or select all with "&lt;&lt;".
+
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+
+<tr><td valign="top">Coverage<td> Read coverage for the SNP.
+<br>Enter either or both limits (&lt;= and &gt;=), e.g. &gt;=20 and &lt;=100
+
+<tr><td valign="top">Score<td> Ref/(Ref+Alt). 
+<br>A value near 0 is Alt&gt;Ref and a value near 1 is Ref&gt;Alt.
+<br>Enter either or both limits, e.g. &lt;=0.2 or &gt;=0.8.
+
+<tr><td valign="top">AI p-val<td> The p-value from the binomial test (e.g. 0.001).
+<br>Select Ref&gt;Alt or Alt&gt;Ref to see the corresponding set.
+
+<tr><td valign="top">Libraries<td>Selecting "All" is very strict, as all libraries must pass the filters.
+<br>Selecting "Any" requires one of the selected libraries to pass for the SNP.
+</table>
+<p>Coverage, Score and Pvalue can be simultaneously searched.
+</html>

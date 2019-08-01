@@ -1,0 +1,2 @@
+#!/bin/sh
+java -Xmx5120m -classpath java/jars/JRI.jar:java/jars/aw.jar:java/jars/mysql-connector-java-5.0.5-bin.jar build.Bmain $@ 

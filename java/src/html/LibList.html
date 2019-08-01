@@ -1,0 +1,56 @@
+<html>
+<h3>LibList Table</h3>
+This table is called 'LibList' as it shows per-library coverage values for a list of genes, transcripts
+or replicas. It can be displayed from three other tables: gene (Libs), transcripts (lLibs) and libList (Replicas).
+<p>
+Top row of buttons:
+<ul type="circle">
+<li>Select one or more rows followed by "Replicas", which will show the table of replica
+coverage values for the selected set.
+</ul>
+
+
+<h4>Column descriptions</h4>
+The columns shown depend on what table is displayed. 
+<br>
+<table border=0>
+<tr><td><i>Column</i><td><i>Description</i><td><i>Note</i>
+<tr><td valign="top">LIBid<td>mySQL identifier, used internally.<td>&nbsp;
+<tr><td valign="top">Lib Name<td>Library abbreviated name<td>&nbsp;
+<tr><td valign="top">Id<td>Either the Gene or Trans  mySQL identifier.<td>&nbsp;
+<tr><td valign="top">Gene or Trans<td>Name<td>&nbsp;
+<tr><td valign="top">SNP Rep<td>Number of reference reads covering SNPs from the library.<td>&nbsp;
+<tr><td valign="top">SNP Alt<td>Number of alternative reads covering SNPs from the library.<td>&nbsp;
+<tr><td valign="top">Read Ref<td>Number of reads assigned to the transcript for the reference.<td>If loaded<sup>1,2</sup>
+<tr><td valign="top">Read Alt<td>Number of reads assigned to the transcript for the alternative.<td>If loaded<sup>1,2</sup>
+<tr><td valign="top">Read All<td>Total number of reads assigned to the transcript<br> (note that
+some transcripts have no ref/alt difference, <br>in which case the Ref/Alt numbers are zero). <td>If loaded<sup>1,2</sup>
+
+<tr><td colspan=2>LibList for Genes or Trans
+<tr><td valign="top">SNP Pval<br><td>P-value for the allele imbalance.<td>
+<tr><td valign="top">Read Pval<td>P-value for the allele imbalance.<td>if loaded<sup>1,2</sup>
+<tr><td valign="top">#SNP Cov<td>Number of SNPs for lib with coverage>=20<td>
+
+<tr><td colspan=2>LibList for Replicas
+<tr><td valign="top">SNP Rep<br><td>P-value if the replica is signficantly different from the others.<td>&nbsp;
+<tr><td valign="top">Read Rep<td>P-value if the replica is significantly different from the others.<td>if loaded<sup>1,2</sup>
+<tr><td valign="top">RepNum<td>Replica number<td>&nbsp;
+</table>
+<br>
+<br><sup>1</sup>These columns are not shown if the corresponding data is not in the database.
+<br><sup>2</sup>Programs such as
+eXpress (Roberts A, Pachter L (2013) Nat Methods 10: 71-73) 
+<br>compute the estimated number of total
+reads for the reference and alternative by taking into account the variants. 
+
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending) and left click or second right click (ascending).
+<li>To change the columns shown, select "Select" (next to the "Columns" label at the bottom of the window). 
+<br>Selecting/deselecting a column immediately displays or removes it.
+<li>When a new table is generated, it uses the last selected column settings. 
+<br>NOTE: since there are different columns based on whether Lib Reps, Gene Libs, or Trans Libs are shown,
+the 'last' column settings may not always make sense as they are positional.
+</ol>
+</html>

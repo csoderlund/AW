@@ -1,0 +1,87 @@
+<html>
+<body>
+<h3>runAW</h3>
+Note: this Help is also found on the AW website, and may be updated with new information.
+This Help is only updated with releases.
+<h4>To build the demo</h4>
+<ol>
+<li>Edit HOSTS.cfg and enter the userid and password, e.g.
+<pre>
+host=localhost
+user=&lt;your mysql userid&gt;
+password &lt;your mysql password&gt;
+</pre>
+<li>Press "Select a project" and select "demo".
+<li>Go to the bottom of the window and press "Build".
+<br>Check the terminal window as you will be prompted with one or more questions.
+</ol>
+<h4>To create the AW database</h4>
+<ol>
+<li>Press "Create" and you will be prompted for a project name. This will create a directory
+<br>under "/projects", where it will write the AW.cfg configuration file.
+<li>Fill out all sections, where everything is required except those entries with (Optional).
+<li>Either press "Build" at the bottom, or "Save", exit, and run "./buildAW &lt;project name&gt;",
+<br>Either way, you will need to answer one or more questions at the terminal prompt.
+</ol>
+This builds the database and creates a directory "AW_output" under the "project/&lt;project name&gt;"
+<br>which contains ntRef.fa and ntAlt.fa, which can be used as input to the <tt>transASE.pl</tt> script.
+
+<h4>To update the AW database</h4>
+<ol>
+<li>Make any changes to the input files using <tt>runAW</tt>, then save and exit.
+<li>Execute <tt>./buildAW</tt> with project_name and option.
+<br>To view options, execute <tt>./buildAW</tt> with no parameters, or see below.
+</ol>
+
+<h4>Information on input</h4>
+Details of the file formats are given in the Files documentation.
+<p><i><b>Inportant:</b></i> The naming of the input files must agree with the abbreviations
+<br>for Condition #1 and optional Condition #2. This is explained in the Files document.
+
+<p><i>Variant Files</i>
+<ol>
+<li>The variant file(s) and variant annotation file(s) may be the same.
+<li>The variant count files shoud be created with the AW pipeline as the naming of the 
+files is important.
+<li>The variant effect file may be made with snpEff (very easy to use) 
+<br>or the Ensembl Variant Predictor website. If no effect input is supplied, 
+<br>the <tt>buildAW</tt> will compute the effects missense, synonymous, UTR5 and UTR3.
+</ol>
+
+<p><i>Reference Genome</i>
+<ol>
+<li>This is used to create transcripts, which are loaded into the database and written to file. 
+<li>The sequenced genome must be split into chromosome files, prefixed by "chrN" 
+<br>where N is the number or X or Y. (The prefix does not have to be "chr", as long as whatever
+<br>is used is consistently used).
+</ol>
+
+<h4>buildAW</h4>
+<pre>
+buildAW &lt;project&gt; [optional action]
+   Read projects/&lt;project&gt;/AW.cfg for the parameters.
+   The database is AW_&lt;project&gt;
+
+Load all (no action)
+   Load GTK genes and trans (GTK)
+   Load Variants (VCF)
+   Compute transcripts and proteins (genome sequence)
+   Load Variant coverage (BED)
+ 
+Plus the following actions 5-8, which can also be run separately
+To run separately, add the necessary file information to runAW, save, then run buildAW
+
+Action  Description
+5   Load Variant effects (Ensembl Variant Predictor or snpEFF)
+6   Load Gene NCBI descriptions (Genbank)
+7   Compute AI=allele imbalance
+
+8   Load Transcript counts (.xprs)
+    This is typically run separately since it needs the transcripts,
+    which are output during the database build,
+    but the trans counts will load during build if available.
+
+N   (where N>20) Compute transcript coverage with read size=N
+    by default, it uses 100 during the addition of variant coverage
+</pre>
+</html>

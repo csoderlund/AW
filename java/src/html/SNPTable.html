@@ -1,0 +1,95 @@
+<html>
+<h3>Variant Table</h3>
+
+<h4>Top row of buttons</h4>
+<table border=0>
+<tr><td><i>Button</i><td>Description</i>
+<tr><td valign="top">Trans<td>Show the table of library counts for the selected SNP(s).
+<tr><td valign="top">Var by trans<td>Show the selected variants listed by transcript, with
+transcript specific information.
+<tr><td valign="top">Replicas<td>Shows the replica counts for the selected variant.
+<tr><td valign="top">Copy rsID<td>Copy the variant name from the selected row so that it can be pasted.
+<tr><td valign="top">Export Table<td>Export the content of the table to a file, where the order of
+the columns and rows are maintained.
+</table>
+
+<h4>Columns</h4>
+The Variant table has 3 different views:
+<ol>
+<li><i>Variant</i>: From the Variant Query page. Information applies to all transcripts with the SNP.
+<li><i>GeneVar</i>: From selecting a gene in the gene table. Information applies to all transcripts with the SNP.
+<li><i>TransVar</i>: From selecting a transcript in the trans table. The last row of Basic Columns are 
+<br>specific to the transcript.
+</ol>
+<h5>Basic Selection</h5>
+<ul>
+<li>Some data is optional, so may not be available. 
+<li>For Variant and GeneVar tables, the "*" implies that the data is for all gene transcrips.
+<br>For the TransVar table, the "*" implies the data is specific to the transcript.
+</ul>
+
+<table border=0>
+<tr><td><i>Column</i><td>Description</i>
+<tr><td valign="top">#LibCov<td>Number of libraries with Ref+Alt&gt;=20. To view:
+<br>a. From the library selection, select all libraries and the Score.
+<br>b. The #LibCov corresponds to the number that are not "--", which implies &lt;20.
+
+<tr><td valign="top">#LibAI<td>Number of libraries with pvalue&lt;0.05. To view:
+<br>a. From the library selection, select all libraries and the Pvalue.
+<br>b. The #LibAI corresponds to the number that are &lt;0.05.
+
+<tr><td valign="top">#Cov<td>Summed total of all libraries.
+<tr><td valign="top">isSNP<td> 0=indel, 1=SNP
+<tr><td valign="top">isCoding*<td> 0=no, 1=yes
+<tr><td valign="top">isMis*<td> 0=not missense, 1=is missense, 
+<br>(Variant or VarGene) 2=both missense and not missense (in multiple transcripts).
+<tr><td valign="top">isDamage*<td> 0=not damaging, 1=is damaging, 
+<br>(Variant or VarGene) 2=both damaging and not damaging (in multiple transcripts).
+<br>If the variant annotation is from Ensembl Variant Predictor, the function contains the string "SIFT=delete".
+<br>If the annotation is from snpEFF, then it is scored "high".
+
+<tr><td valign="top">Effect*<td>List of effects or transcript effect
+<tr><td valign="top">Exon*<td>List of exons or transcript exon
+
+<tr><td valign="top">odRmk<td>This indicates there are 1 or more libraries the have one or more replicas
+<br>significantly in the opposite direction. To view the offending replicas,
+<br>a. Select the SNP followed by Replicas.
+<br>b. In the resulting variant reps table, the offending replica will have a 'Rep pval'.
+</table>
+
+<h5>Basic Selection - TransVar specific columns</h5> 
+The following columns are only in the TransVar table.
+<table border=0>
+<tr><td><i>Column</i><td>Description</i>
+<tr><td>cDNApos<td>Position in the cDNA. Either read from EVP or computed in buildAW.
+<tr><td>Dist<td>Distance to the next variant using the cDNA position.
+<tr><td valign="top">Include<td>If 1, SNP is included in summing the SNP coverage for the transcript.
+<br>Excluding near-by SNPs reduces the chances of a read being counted multiple times.
+<tr><td>CDSpos<td>Position in the coding sequence. Either read from EVP or computed by AW.
+<tr><td>AApos<td>Position in the protein sequence. Either read from EVP, snpEFF or computed by AW.
+<tr><td>AAs<td>The amino acid or amino acid substitution. Either read from EVP, snpEFF or computed by AW.
+<tr><td>Codons<td>The codon or codon substitution. Either read from EVP, snpEFF or computed by AW.
+</table>
+
+<h5>Library Group Selection</h5>
+<ul type="circle">
+<li>Select at least one option from each row, then select "Apply Selection".
+<li>Ratio=Ref:Alt, Score=Ref/(Ref+Alt), Pval=p-value
+</ul>
+
+<h5>Library Ref:Alt Selection</h5>
+<ul type="circle">
+<li>Individually select libraries for Ratio, Score and/or Pvalue.
+</ul>
+
+<h4>Manipulating the table</h4>
+<ol>
+<li>Columns can be moved around by selecting a column heading and moving it.
+<li>Columns can be sorted by right click (descending); left click or second right click (ascending).
+<li>Various columns can be turned on or off by selecting "Show Columns" and setting the desired 
+column appropriately. 
+<li>When a new table is generated, it uses the last selected column settings. However, the order
+of columns is not preserved for new tables.
+</ol>
+
+</html>

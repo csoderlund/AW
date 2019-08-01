@@ -1,0 +1,42 @@
+<html>
+<h3>Gene Query</h3>
+
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Top buttons</i><td><i>Description</i>
+<tr><td valign="top">Search Genes<td> If no filters are set, this shows all genes.
+<br>With filters, shows the filtered set of genes.
+<tr><td valign="top">Limit<td> Set filters that will limit the 
+output to genes that may be of most interest.
+<tr><td valign="top">Clear<td>Clear all  filters.
+</table>
+<hr>
+<sup>1</sup>If an exact match is found, it is displayed. 
+Otherwise, the search will return anything that contains the substring. 
+<br>Searches are not case-sensitive.
+Putting a "*" at the end of the string returns all transcripts with that prefix.
+<br><sup>2</sup>Optional data, may not be in the database.
+
+<h4>Basic</h4>
+Only one of these filters is applied. The General section will be ignored.
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+<tr><td valign="top">Gene Name<td>
+Enter a substring<sup>1</sup> or a comma delimited list of exact names. 
+<br>Or, Load a file of exact names, where there should be one name per line.
+<br>NOTE: You may need to use the Cntl-V to paste.
+<tr><td valign="top">Synonym<td>Enter the substring<sup>1</sup> from the Synonyms<sup>2</sup> column.
+</table>
+
+
+<h4>General</h4>
+All filters are applied. The Basic section will be ignored.
+<table border=0 cellpadding=5>
+<tr><td valign="top"><i>Search</i><td><i>Description</i>
+<tr><td valign="top">Description<td>Enter the substring<sup>1</sup> from the Descript<sup>2</sup> column.
+
+<tr><td valign="top">Chr<td>Only enter the number or letter.
+<tr><td valign="top">Variant<td>To only show genes that have SNPs or Missense or Indels,
+<br>select the appropriate radio button
+</table>
+
+</html>

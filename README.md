@@ -4,8 +4,10 @@ Documentation: www.agcol.arizona.edu/software/AW
 
 Requirements: Perl for the pipeline. Java and MySQL to build the database and view the results.
 
-
-The Allele Workbench (AW) is for the analysis of allele-specific expression. 
+Reference: C. Soderlund, W. Nelson, and S. Goff. (2014) Allele Workbench: transcriptome pipeline 
+	and interactive graphics for allele specific expression. PLoS ONE
+	
+Description: The Allele Workbench (AW) is for the analysis of allele-specific expression. 
 The pipeline has been tested on Linux, and the Java code has been tested on Linux and MacOSX. 
 
 The package contains:

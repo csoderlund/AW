@@ -13,9 +13,7 @@ DEFINITION  Mus musculus COP9 (constitutive photomorphogenic) homolog, subunit
                      subunit 5 (Arabidopsis thaliana)"
  */
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -60,8 +58,8 @@ public class GeneAnno {
 			while (rs.next()) {
 				geneMap.put(rs.getString(2), rs.getInt(1));
 			}
-			LogTime.PrtSpMsg(1, "Genes in DB " + geneMap.size());
-      	 	 	
+      	 	rs.close();
+      	 	
 			BufferedReader reader = new BufferedReader ( new FileReader ( ncbiFile ) ); 
 			int cnt=0, cnt1=0, done=0, nf=0;
 			int numKey=5;
@@ -166,8 +164,7 @@ public class GeneAnno {
 							syn = syn.substring(0,syn.length()-1);
 							done++;
 						}
-					}
-					//else System.out.println(line);					
+					}			
 				}
 				if (trans.equals("") && line.contains("/translation")) {
 					mat = patTrans.matcher(line);
@@ -178,11 +175,10 @@ public class GeneAnno {
 							trans = trans.substring(0,trans.length()-1);
 							done++;
 						}
-					}
-					//else System.out.println(line);					
+					}			
 				}
 			}
-			LogTime.PrtSpMsg(1, "Found " + cnt + " entered " + cnt1 + " " + " not found " + nf);
+			LogTime.PrtSpMsg(2, "Found: " + cnt + "  Entered: " + cnt1 + " " + "  Not found: " + nf);
 			reader.close();
 		}
 		catch (Exception e) {

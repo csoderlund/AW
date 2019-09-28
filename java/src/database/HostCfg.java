@@ -126,14 +126,24 @@ public class HostCfg {
 		}
 		return null;
 	}
-	
+
 	public DBConn getDBConnection() throws Exception
 	{
 		String dbstr = "jdbc:mysql://" + DBhost + "/" 	+ DBname;
 		mDB = new DBConn(dbstr, DBuser, DBpass);
 		return mDB;
 	}
-
+	public DBConn renew() 
+	{
+		try {
+			if (mDB==null) return getDBConnection();
+			else return mDB;
+		}
+		catch (Exception e) {
+			ErrorReport.prtError(e, "Cannot renew connection for " + DBname);
+		}
+		return null;
+	}
 	public boolean existsDB(String db)
 	{
 		try {
@@ -151,15 +161,17 @@ public class HostCfg {
 			return false;
 		}
 	}
-	public void deleteDB(String db) {
+	public boolean deleteDB(String db) {
 		if (DBuser.equals("")) {
-			if (!readHosts()) return;
+			if (!readHosts()) return false;
 		}
 		try {
 			DBConn.deleteMysqlDB(DBhost,db, DBuser, DBpass);
+			return true;
 		}
 		catch (Exception e) {
 			ErrorReport.prtError(e, "Could not delete database: " + db);
+			return false;
 		}
 	}
 	

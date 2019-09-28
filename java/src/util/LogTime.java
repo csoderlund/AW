@@ -18,6 +18,7 @@ import viewer.ViewerFrame;
 public class LogTime {
 
 	static PrintWriter logFileObj=null;
+	static boolean debug=false;
 	 /************************************************************************
      * Methods for printing to logFile, errFile and stdout
      **************************************************************************/
@@ -25,7 +26,7 @@ public class LogTime {
 	static public void Print(String s) {
 	    System.err.println(s);
 	    System.out.flush();
-	    if (logFileObj != null) { // not open if called by viewPAVE/Version
+	    if (logFileObj != null) { 
 	    		logFileObj.println(s);
 	        logFileObj.flush();
 	    }
@@ -253,5 +254,22 @@ public class LogTime {
 				0, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
 		return n;
 		
+	}
+	static public void rClear() {
+		System.err.print("                                                         \r");
+	}
+	static public void r(String msg) {
+		System.err.print("      " + msg + "...                 \r");
+	}
+	
+	static public void detail(String msg) {
+		if (debug) PrtSpMsg(1, "Detail: " + msg);
+		else System.err.print("   " + msg + "                  \r");
+	}
+	static public void error(String msg) {
+		System.err.print("Error: " + msg);
+	}
+	static public void warn(String msg) {
+		PrtWarn(msg);
 	}
 }

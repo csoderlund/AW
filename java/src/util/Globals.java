@@ -4,11 +4,12 @@ import java.awt.Color;
 
 public class Globals {
 	static final public String NAME = "AW";
-	static final public String VERSION = "v1.0";
-	static final public String VDATE = "(2 Mar 2018)";
+	static final public String VERSION = "v1.1";
+	static final public String VDATE = "(9 Sept 2019)";
 	static final public String DBprefix = "AW_";
 	static final public String TITLE = NAME + " (Allele Workbench) " + VERSION + " " + VDATE;
 
+	static public final int MAX_REPS = 20;
 	static public final int MIN_READS = 20; 
 	static public final double NO_PVALUE = 2.0;
 	static public final double AI_PVALUE = 0.05;

@@ -70,7 +70,6 @@ public class GeneCov {
 			int nLib=0;
 			long totalLoad=0, totalAdd=0;
 		
-		
 			for (String toks : geneCovVec)
 			{
 				String [] x = toks.split(":");
@@ -81,14 +80,20 @@ public class GeneCov {
 				HashMap<String,HashMap<String,Integer>> counts = new HashMap<String,HashMap<String,Integer>>();
 				
 				int libid = libMap.get(libName);
-				PreparedStatement ps = mDB.prepareStatement("update transLib " +
-						" set refCount2=?,altCount2=?,totCount2=? " +
-						" where libid=" + libid + " and repnum=" + rep + " and transid=?");
+				
+				PreparedStatement ps0 = mDB.prepareStatement("insert transLib " +
+						" set LIBid=" + libid + ", repNum=0, libName='" + libName + "'," +
+						" TRANSid=?, transName=?");
+				
+				PreparedStatement ps1 = mDB.prepareStatement("update transLib " +
+						" set refCount2=?, altCount2=?, totCount2=? " +
+						" where LIBid=" + libid + " and repnum=" + rep + " and transid=?");
+				
 				PreparedStatement ps2 = mDB.prepareStatement("update transLib  " +
 						" set refCount2=refCount2 + ?, altCount2=altcount2 + ?,totCount2= totcount2 + ? " +
-						" where libid=" + libid + " and repnum=0 and transid=?");
+						" where LIBid=" + libid + " and repnum=0 and transid=?");
 				
-				int loaded = 0;
+				int cntLoaded = 0, totalLoaded = 0;
 				int unkTrans = 0, addLib=0;
 				
 				BufferedReader r = new BufferedReader(new FileReader(geneCovDir + "/" + file));
@@ -98,7 +103,7 @@ public class GeneCov {
 					if (fields[0].equals("") || fields.length <= 14) continue; //probably end of file 
 					Matcher m1 = transPat.matcher(fields[1]);
 					if (!m1.matches()) {
-						System.err.println("Can't parse name " + fields[1] + ", file " + file);
+						LogTime.error("Can't parse name " + fields[1] + ", file " + file);
 						break;
 					}
 					String abc = m1.group(1);
@@ -110,56 +115,45 @@ public class GeneCov {
 					}
 					if (!transMap.containsKey(tName) && !transAlias.containsKey(tName))
 					{
-						//System.err.println("Failed to match name " + tName);
 						unkTrans++;
 						continue;
 					}
-					else
-					{
-						//System.err.println("Matched name " + tName);
-					}
+					
 					if (transAlias.containsKey(tName))
 					{
 						tName = transAlias.get(tName);
 					}
 					int transID = transMap.get(tName);
 					
-					// CAS 2/27/14 - transLib only has entries with SNPs, add entries for rep0
-					// not sure its worth it, but the data can be seen from the Trans Lib table
 					boolean allReps=true;
 					String key=transID + ":" + libid;
 					
 					if (!transLib.contains(key)) {
 						allReps=false;
 						if (!newTransLib.contains(key)) {
-							mDB.executeUpdate("insert transLib " +
-									"set TRANSid=" + transID + ",LIBid=" + libid + ",repNum=0," +
-									"libName='" + libName + "'," +
-									"transName='" + transName.get(transID)+"'");
+							ps0.setInt(1, transID);
+							ps0.setString(2, transName.get(transID));
+							ps0.executeUpdate();
 							newTransLib.add(key);
 							addLib++;
 						}
-					}
-					if (loaded%1000==0) {
-						System.out.print("   " + nLib + "." + libid + "." + file + 
-								" trans=" + loaded + " skipped=" + unkTrans + " added=" + addLib+ "     \r");
 					}
 					
 					if (abc.equals("C")) //  no ref/alt, so only one read count
 					{
 						if (allReps) {
-							ps.setInt(4,transID);
-							ps.setInt(1,0);
-							ps.setInt(2,0);
-							ps.setInt(3, count);
-							ps.addBatch();
+							ps1.setInt(4,transID);
+							ps1.setInt(1,0);
+							ps1.setInt(2,0);
+							ps1.setInt(3, count);
+							ps1.addBatch();
 						}
 						ps2.setInt(4,transID);
 						ps2.setInt(1,0);
 						ps2.setInt(2,0);
 						ps2.setInt(3, count);
 						ps2.addBatch();
-						loaded++;
+						cntLoaded++; totalLoaded++;
 					}
 					else // A is ref and B is alt
 					{
@@ -171,48 +165,64 @@ public class GeneCov {
 						{
 							counts.get(tName).put(abc,count); // easiest way to sort into A and B
 							if (allReps) {
-								ps.setInt(1,counts.get(tName).get("A"));
-								ps.setInt(2,counts.get(tName).get("B"));
-								ps.setInt(3,counts.get(tName).get("A") + counts.get(tName).get("B"));
-								ps.setInt(4,transID);
-								ps.addBatch();
+								ps1.setInt(1,counts.get(tName).get("A"));
+								ps1.setInt(2,counts.get(tName).get("B"));
+								ps1.setInt(3,counts.get(tName).get("A") + counts.get(tName).get("B"));
+								ps1.setInt(4,transID);
+								ps1.addBatch();
 							}
 							ps2.setInt(1,counts.get(tName).get("A"));
 							ps2.setInt(2,counts.get(tName).get("B"));
 							ps2.setInt(3,counts.get(tName).get("A") + counts.get(tName).get("B"));
 							ps2.setInt(4,transID);
 							ps2.addBatch();
-							loaded++;
+							cntLoaded++; totalLoaded++;
 						}
 					}
-					if (loaded%1000==0) { 
-						ps.executeBatch();
+					if (cntLoaded==1000) { 
+						LogTime.r(nLib + "." + libid + "." + file + 
+							" trans=" + totalLoaded + " skipped=" + unkTrans + " added=" + addLib);
+						ps1.executeBatch();
 						ps2.executeBatch();
+						cntLoaded=0;
 					}
+				} // end read file loop
+				
+				if (cntLoaded>0) {
+					ps1.executeBatch();
+					ps2.executeBatch();
 				}
-				ps.executeBatch();
-				ps2.executeBatch();
-				totalLoad+= (long) loaded; 
-				totalAdd+= (long) addLib;			
-				System.out.print("   " + nLib + "." + file + ": trans=" + loaded + " skipped=" + unkTrans + 
-						" added=" + addLib + "      \r");
-			}
-			System.out.println(); // so only last one shows; the #loaded and #skipped are the same for all
-			LogTime.PrtSpMsg(2, "Total loaded " + totalLoad + "; added " + totalAdd);
+				
+				totalLoad+= (long) totalLoaded; 
+				totalAdd+=  (long) addLib;			
+			} // end loop geneCovVec
+			
+			LogTime.PrtSpMsg(2, ""); // so only last one shows; the #loaded and #skipped are the same for all
+			LogTime.PrtSpMsg(2, "Total loaded: " + totalLoad + "  Added: " + totalAdd);
 		}
 		catch(Exception e) {
 			ErrorReport.die(e,"Loading expression results from " + geneCovDir);
 		}
 	}
 	private void updateGenes() {
-		ResultSet rs;
+		ResultSet rs=null;
 		try {
-			int cntAdd=0, cntUpdate=0;
-			
 		// add geneLib repNum=0 where transLibs have been added where they didn't exist because no SNP coverage
 			HashMap <Integer, Integer> geneTrans = new HashMap <Integer, Integer> ();
 			rs = mDB.executeQuery("select geneid, transid from trans");
 			while (rs.next()) geneTrans.put(rs.getInt(2), rs.getInt(1));
+			rs.close();
+			
+			HashMap <Integer, String> geneNames = new HashMap <Integer, String> ();
+			rs = mDB.executeQuery("select geneid, geneName from gene");
+			while (rs.next()) geneNames.put(rs.getInt(1), rs.getString(2));
+			rs.close();
+			
+			PreparedStatement ps0 = mDB.prepareStatement("insert ignore geneLib " +
+					"set GENEid=?,LIBid=?,repNum=0, refCount=0, altCount=0, pvalue=2," +
+					"libName=?, geneName=?");
+			mDB.openTransaction();
+			int cntAdd=0, cntTrans=0;
 			
 			HashSet <String> newGeneLib = new HashSet <String> ();
 			for (String key1 : newTransLib) {
@@ -225,31 +235,34 @@ public class GeneCov {
 				
 				if (!newGeneLib.contains(key2)) {
 					String lib= libMap2.get(libid);
-					rs = mDB.executeQuery("select geneName from gene where geneid=" + geneid);
-					rs.next();
-					String name = rs.getString(1);
+					ps0.setInt(1, geneid);
+					ps0.setInt(2, libid);
+					ps0.setString(3, lib);
+					ps0.setString(4, geneNames.get(geneid));
+					ps0.addBatch();
 					
-					mDB.executeUpdate("insert ignore geneLib " +
-							"set GENEid=" + geneid + ",LIBid=" + libid + ",repNum=0, refCount=0, altCount=0, pvalue=2," +
-							"libName='" + lib + "'," +  "geneName='" + name+"'");
-					cntAdd++;
+					cntAdd++; cntTrans++;
+					if (cntAdd==1000) {
+						ps0.executeBatch();
+						cntAdd=0;
+					}
 					newGeneLib.add(key2);
-				}
+				}	
 			}
-			LogTime.PrtSpMsg(2, "Add gene lib: " + cntAdd);
+			if (cntAdd>0) ps0.executeBatch();
+			LogTime.PrtSpMsg(2, "Add gene lib: " + cntTrans);
+			mDB.closeTransaction();
 			
 		// now update genesLib from transLib
-			Vector<Integer> genes = new Vector<Integer>();
-			rs = mDB.executeQuery("select geneid from gene");
-			while (rs.next()) genes.add(rs.getInt(1));
-			
-			int N = genes.size();
-			int batched = 0;
+			int N = geneNames.size();
+			int cntUpdate=0, cntTotal=0;
 			PreparedStatement ps = mDB.prepareStatement("update geneLib set refcount2=?,altcount2=?,totcount2=? " +
 					"where geneid=? and libid=? and repnum=?");
-			for (int geneid : genes)
+			mDB.openTransaction();
+			
+			for (int geneid : geneNames.keySet())
 			{
-				if (N%1000 == 0) System.err.print(N + "                \r"); 
+				if (N%1000 == 0) LogTime.r(N + " remaining"); 
 				N--;
 				ps.setInt(4, geneid);
 				rs = mDB.executeQuery("select geneid,libid,repnum," +
@@ -264,36 +277,42 @@ public class GeneCov {
 					ps.setInt(5, rs.getInt(2));
 					ps.setInt(6, rs.getInt(3));
 					ps.addBatch();
-					batched++;
+					cntTotal++;
 					cntUpdate++;
-					if (batched == 100) 
+					if (cntUpdate == 100) 
 					{
 						ps.executeBatch();
-						batched = 0;
+						cntUpdate = 0;
 					}
 				}
-				if (batched > 0) ps.executeBatch();
-			}   
-			LogTime.PrtSpMsg(2, "Update gene lib: " + cntUpdate);
+				rs.close();
+			}
+			if (cntUpdate > 0) ps.executeBatch();
+			mDB.closeTransaction();
+			LogTime.PrtSpMsg(2, "Update gene lib: " + cntTotal);
 		}
 		catch(Exception e) {ErrorReport.die(e,"updating Express gene counts");}
 	}
 	
 	private void readLibDB() {
 		LogTime.PrtSpMsg(1, "Loading information from database");
-		ResultSet rs;
+		ResultSet rs=null;
 		try {	
 			rs = mDB.executeQuery("Select LIBid, libName from library");
 			while (rs.next()) {
 				libMap.put(rs.getString(2), rs.getInt(1));
 				libMap2.put(rs.getInt(1), rs.getString(2));
-			}	
+			}
+			rs.close();
+			
 			rs = mDB.executeQuery("Select transid, transName,transIden from trans");
 			while (rs.next()) {
 				transMap.put(rs.getString(2), rs.getInt(1));
 				transName.put(rs.getInt(1), rs.getString(2));
 				transAlias.put(rs.getString(3), rs.getString(2));
 			}
+			rs.close();
+			
 			// in case this has been run before; if this isn't done, all reps will get added
 			mDB.executeUpdate("delete from transLib where refCount=0 and altCount=0");
 			
@@ -302,7 +321,8 @@ public class GeneCov {
 				String key = rs.getInt(1) + ":" +rs.getInt(2);
 				transLib.add(key);
 			}	
-			LogTime.PrtSpMsg(2, "Libs=" + libMap.size() + " Trans=" + transMap.size() + " TransLib=" + transLib.size());
+			rs.close();
+			LogTime.PrtSpMsg(2, "Libs: " + libMap.size() + "  Trans: " + transMap.size() + "  TransLib: " + transLib.size());
 		}
 		catch (Exception e) {ErrorReport.die(e, "reading database for Gene Coverage ");}		
 	}

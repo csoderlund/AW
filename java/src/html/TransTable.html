@@ -63,7 +63,7 @@ Most columns are obvious by their names. But the following are a few non-obvious
 <tr><td valign="top">RefProLen<td>Length of the reference protein.
 <tr><td valign="top">AltProLen<td>Length of the alternate protein.
 <tr><td valign="top">gtkRmk<td>Remarks non-regular coordinates.
-<tr><td valign="top">odRmk<td>Remarks opposite direction replicas or SNPs, as follows:
+<tr><td valign="top">odRmk<td>Remarks opposite direction replicates or SNPs, as follows:
 <ol type="a">
 
 <li>odSNP Two or more AI (p-value&lt;0.05) SNPs have opposite direction. 
@@ -77,14 +77,14 @@ The 'odSNP:' will be followed by the offending library(s), e.g. odSNP: YfMus.
 <br>and the score will be in the opposite direction from 0.5. 
 </ol>
 
-<li>odREP The transcript has one or more libs where the summed SNP replicas are in opposite directions.
-<br>For example, if there are 4 replicas of (90:120, 100:85, 100:70, 125:75), 
+<li>odREP The transcript has one or more libs where the summed SNP replicates are in opposite directions.
+<br>For example, if there are 4 replicates of (90:120, 100:85, 100:70, 125:75), 
 the first would be flagged. 
-<br>To see the offending replicas, 
+<br>To see the offending replicates, 
 <ol  type="i">
 <li>Select the transcript, then select "Libs"; 
-<li>From the LibList table, select all libraries followed by "Replica". 
-<li>The offending replica(s) will have a value in the "Rep pval" column, all
+<li>From the LibList table, select all libraries followed by "replicate". 
+<li>The offending replicate(s) will have a value in the "Rep pval" column, all
 other entries have "--".
 </ol>
 </table>

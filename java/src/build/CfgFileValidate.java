@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import util.ErrorReport;
+import util.Globals;
 import util.LogTime;
 
 public class CfgFileValidate {
@@ -343,7 +344,7 @@ public class CfgFileValidate {
 			
 				if (!repNum.equals("")) {
 					if (noRep.contains(libName)) { // could end up with two "1"s, which crashes
-						LogTime.PrtError("At least one file for lib '" + libName +"' has a replica number but another does not");
+						LogTime.PrtError("At least one file for lib '" + libName +"' has a replicate number but another does not");
 						return null;
 					}
 				}
@@ -351,7 +352,7 @@ public class CfgFileValidate {
 					repNum="1"; // just goes into database
 					noRep.add(libName);
 					if (repCnt.containsKey(libName)) {
-						LogTime.PrtError("At least one file for lib '" + libName +"' has a replica number but another does not");
+						LogTime.PrtError("At least one file for lib '" + libName +"' has a replicate number but another does not");
 						return null;
 					}
 				}
@@ -382,6 +383,8 @@ public class CfgFileValidate {
 						cnt=0;
 						msg = "";
 					}
+					if (repCnt.get(key)>Globals.MAX_REPS)
+						LogTime.die("Only " + Globals.MAX_REPS + " replicates allows: " + t);
 				}
 				if (!msg.equals("")) LogTime.PrtSpMsg(4, msg);
 			}
@@ -557,6 +560,20 @@ public class CfgFileValidate {
 	public void setCond(Vector <String> c1, Vector <String> c2) {
 		cond1Vec = c1;
 		cond2Vec= c2;
+		
+		int n=0;
+		String msg="Conditions: ";
+		for (int i=0; i<cond1Vec.size(); i++)
+			for (int j=0; j<cond2Vec.size(); j++) {
+				msg += cond1Vec.get(i) +":" + cond2Vec.get(j) + "   ";
+				n++;
+				if (n>7) {
+					LogTime.PrtSpMsg(2, msg);
+					msg = "            ";
+					n=0;
+				}
+			}
+		if (n>0) LogTime.PrtSpMsg(2, msg);
 	}
 	private Vector <String> cond1Vec, cond2Vec;
 	private String chrRoot="";

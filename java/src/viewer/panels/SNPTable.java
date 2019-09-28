@@ -115,6 +115,7 @@ public class SNPTable extends JPanel {
     		row1.add(new JLabel ("Show Selected:"));
     		row1.add(Box.createHorizontalStrut(5)); 
     		
+    		
     		createShowTransButton();
     		row1.add(btnShowTrans);
     	    row1.add(Box.createHorizontalStrut(5)); 
@@ -126,6 +127,10 @@ public class SNPTable extends JPanel {
     	    createShowSNPRepsButton();
     	    row1.add(btnShowSNPReps);
     	    row1.add(Box.createHorizontalStrut(5)); 
+    	    
+    	    btnShowTrans.setEnabled(false);
+    		btnShowVarTrans.setEnabled(false);
+    		btnShowSNPReps.setEnabled(false);
     	    
         	btnCopyClipboard = CreateJ.button("Copy " + Globals.SNPNAME); // TODO make pull-down with copy gene
         	btnCopyClipboard.setEnabled(false);
@@ -214,11 +219,16 @@ public class SNPTable extends JPanel {
 		});        
     }
     private void createShowSNPRepsButton() {	
-        btnShowSNPReps = new JButton("Replicas");
+        btnShowSNPReps = new JButton("Replicates");
     	
         btnShowSNPReps.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try{	
+					int cnt = theJTable.getSelectedRowCount();
+					if (cnt==0) {
+						System.err.println("Select a row to show replicates");
+						return;
+					}
 					int IDidx = theTableData.getColumnHeaderIndex(Globals.SNPSQLID);
 			 		int Nameidx = theTableData.getColumnHeaderIndex(Globals.SNPNAME);
 			 	
@@ -229,7 +239,7 @@ public class SNPTable extends JPanel {
 					theViewerFrame.addResultPanel(getInstance(), newPanel, newPanel.getTabName(), 
 							strQuerySummary);
 				} catch(Exception e) {
-					ErrorReport.prtError(e, "Error showing replicas");
+					ErrorReport.prtError(e, "Error showing replicates");
 				} catch(Error e) {
 					ErrorReport.reportFatalError(e);
 				}
@@ -445,6 +455,9 @@ public class SNPTable extends JPanel {
 		};		
 		selListener = new ListSelectionListener() {
 			public void valueChanged(ListSelectionEvent arg0) {
+				boolean rowsSelected = false;
+				if(theJTable.getSelectedRowCount() > 0 && theJTable.getSelectedRowCount() < 1000) 
+					rowsSelected = true;
 				if(theJTable.getSelectedRowCount() >= 1000)
 					txtStatus.setText("Cannot select more than 1000 rows at a time");
 				else
@@ -454,6 +467,10 @@ public class SNPTable extends JPanel {
 					btnCopyClipboard.setEnabled(true);
 				else if(btnCopyClipboard != null)
 					btnCopyClipboard.setEnabled(false);
+				
+				btnShowTrans.setEnabled(rowsSelected);
+	    			btnShowVarTrans.setEnabled(rowsSelected);
+	    			btnShowSNPReps.setEnabled(rowsSelected);
 			}
 		};
 

@@ -82,7 +82,7 @@ public class ErrorReport {
 		System.exit(-1);
 	}
 	public static void die(Throwable e, String debugInfo) {
-		System.err.println("Fatal Error: " + debugInfo);
+		System.err.println("Fatal Error: " + debugInfo + "  (see error.log)");
 		reportError(strFileName, e, debugInfo, false);
 		System.exit(-1);
 	}

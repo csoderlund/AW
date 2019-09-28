@@ -70,7 +70,7 @@ public class ASE
 			int cur_snp = 0, cur_lib = 0;
 			double cur_ratio = 0;
 			int numComputed = 0, numASE = 0, numDiffReps = 0, numToUpload = 0;
-			System.err.print("      SNP/Libs to process " + numToDo + "          \r");
+			LogTime.r("SNP/Libs to process " + numToDo);
 
 			while (rs.next())
 			{
@@ -101,7 +101,7 @@ public class ASE
 					numToUpload++;
 					if (numToUpload >= 1000)
 					{
-						System.err.print("      SNP/Libs to process " + numToDo + "           \r");
+						LogTime.r("SNP/Libs to process " + numToDo);
 						ps.executeBatch();
 						numToUpload = 0;
 					}
@@ -110,7 +110,7 @@ public class ASE
 				{
 					if (snpid != cur_snp || libid != cur_lib) // shouldn't happen
 					{
-						System.err.println("SNP Replicate with no repnum 0!");
+						LogTime.warn("SNP Replicate with no repnum 0!");
 						continue;
 					}
 					double pvalue = chiRatio(cur_ratio, refcount, altcount);
@@ -126,14 +126,12 @@ public class ASE
 					}
 				}
 			}
-			if (numToUpload > 0)
-			{
-				ps.executeBatch();
-			}
+			if (numToUpload > 0) ps.executeBatch();
+		
 			rs.close();
-			ps.executeBatch();
+			
 			LogTime.PrtSpMsg(2, "SNP/libs computed:" + numComputed + "  ASE:" + numASE + "  " +
-					odREMARK + " reps:" + numDiffReps);
+					odREMARK + " Reps:" + numDiffReps);
 		}
 		catch(Exception e){ErrorReport.prtError(e, "SNP ASE computation failed");}
 	}
@@ -153,8 +151,6 @@ public class ASE
 			ps = mDB.prepareStatement("update transLib set pvalue=? where transid=? and repnum=? and libid=?");
 			ps2 = mDB.prepareStatement("update transLib set pvalue2=? where transid=? and repnum=? and libid=?");
 			
-			// CAS 8/6/14 - change refcount+altcount>=20 to cntSNPcov>0 which says at least one SNP has >=20 reads
-			// which is stronger since otherwise there could be 100 SNPs with count 1....
 			rs = mDB.executeQuery("select transid, repnum, refcount, altcount, refcount2, altcount2, libid, cntSNPcov " +
 					" from transLib " +
 					" where (refcount+altcount >=" + MIN_COV + ")  or (refcount2+altcount2 >=" + MIN_COV + ")" +
@@ -163,7 +159,7 @@ public class ASE
 			double cur_ratio = 0, cur_ratio2 = 0;
 			int numComputed = 0, numASE = 0, numASE2 = 0;
 			int numDiffReps = 0, numDiffReps2 = 0, numToUpload = 0, numToUpload2 = 0;
-			System.err.print("      Trans/Libs to process " + numToDo + "       \r");
+			LogTime.detail("Trans/Libs to process " + numToDo + "       ");
 
 			while (rs.next())
 			{
@@ -214,7 +210,7 @@ public class ASE
 					numToDo--;
 					if (numToUpload >= 1000)
 					{
-						System.err.print("      Trans/Libs to process " + numToDo + " \r");
+						LogTime.r("Trans/Libs to process " + numToDo);
 						ps.executeBatch();
 						numToUpload = 0;
 					}
@@ -229,7 +225,7 @@ public class ASE
 				{
 					if (transid != cur_trans || libid != cur_lib) // shouldn't happen
 					{
-						System.err.println("Trans Replicate with no repnum 0!");
+						LogTime.warn("Trans Replicate with no repnum 0!");
 						continue;
 					}
 					double pvalue = chiRatio(cur_ratio, refcount, altcount);			
@@ -261,10 +257,10 @@ public class ASE
 		
 			rs.close();
 			ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Trans/libs computed:" + numComputed + " SNP Coverage ASE:" + numASE + 
-					" " + odREMARK + " reps:" + numDiffReps);		
+			LogTime.PrtSpMsg(2, "Trans/libs computed:" + numComputed + "  SNP Coverage ASE:" + numASE + 
+					" " + odREMARK + "  Reps:" + numDiffReps);		
 			if (numASE2>0) LogTime.PrtSpMsg(2, 
-		"                      Read Count ASE:" + numASE2 + " " + odREMARK +" reps:" + numDiffReps2);		 
+		"                      Read Count ASE: " + numASE2 + " " + odREMARK +" reps: " + numDiffReps2);		 
 		}
 		catch(Exception e){ErrorReport.prtError(e, "ASE computation failed");}
 	}
@@ -293,7 +289,7 @@ public class ASE
 			double cur_ratio = 0, cur_ratio2 = 0;
 			int numComputed = 0, numASE = 0, numASE2 = 0;
 			int numDiffReps = 0, numDiffReps2 = 0,numToUpload = 0, numToUpload2 = 0;
-			System.err.print("      Gene/Libs to process " + numToDo + "   \r");
+			LogTime.detail("Gene/Libs to process " + numToDo);
 
 			while (rs.next())
 			{
@@ -344,7 +340,7 @@ public class ASE
 					numToDo--;
 					if (numToUpload >= 1000)
 					{
-						System.err.print("      Gene/Libs to process " + numToDo + "          \r");
+						LogTime.r("Gene/Libs to process " + numToDo);
 						ps.executeBatch();
 						numToUpload = 0;
 					}
@@ -359,7 +355,7 @@ public class ASE
 				{
 					if (geneid != cur_gene || libid != cur_lib)
 					{
-						System.err.println("Gene Replicate with no repnum 0!");
+						LogTime.warn("Gene Replicate with no repnum 0!");
 						continue;
 					}
 					double pvalue = chiRatio(cur_ratio, refcount, altcount);
@@ -384,15 +380,13 @@ public class ASE
 					}		
 				}	
 			}
-			if (numToUpload > 0)ps.executeBatch();
-			if (numToUpload2 > 0)ps2.executeBatch();
-			
+			if (numToUpload > 0) ps.executeBatch();
+			if (numToUpload2 > 0) ps2.executeBatch();
 			rs.close();
-			ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Gene/libs computed:" + numComputed + " SNP coverage ASE:" + numASE + 
+			
+			LogTime.PrtSpMsg(2, "Gene/libs computed: " + numComputed + "  SNP coverage ASE:" + numASE + 
 					" " + odREMARK + " reps:" + numDiffReps);		
-			if (numASE2>0) LogTime.PrtSpMsg(2, 
-		"                      Read Count ASE:" + numASE2 + " " + odREMARK +" reps:" + numDiffReps2);
+			if (numASE2>0) LogTime.PrtSpMsg(2, "Read Count ASE: " + numASE2 + " " + odREMARK +" reps: " + numDiffReps2);
 		}
 		catch(Exception e){ErrorReport.prtError(e, "ASE computation failed");}
 	}
@@ -419,7 +413,7 @@ public class ASE
 	 */
 	private void addDynSNPCols() { 
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with dynamic SNP columns");
+			LogTime.PrtSpMsg(2, "Updating database with dynamic SNP columns");
 			
 			int cntSNP = mDB.executeCount("Select max(SNPid) from SNPlib");
 			String [] sql = new String [cntSNP+1];
@@ -437,15 +431,16 @@ public class ASE
 					 sql[sid]=   "Update SNP set " + libName + "=" + pvalue;
 				else sql[sid] +=               "," + libName + "=" + pvalue; 
 				
-				if (cnt%1000==0)System.out.print("      read " + cnt + "\r");
+				if (cnt%1000==0) LogTime.r("read " + cnt);
 				cnt++;
 			}
+			rs.close();
 			for (int i=0; i<cntSNP; i++) {
 				if (sql[i]!=null) {
 					sql[i] += " where SNPid=" + i;
 					mDB.executeUpdate(sql[i]);
 				}
-				if (i%1000==0) System.out.print("      entered " + i + "\r");
+				if (i%1000==0) LogTime.r("entered " + i);
 			}
 		}
 		catch (Exception e) {ErrorReport.die(e, "update pvalues for dynamic columns");}
@@ -455,7 +450,7 @@ public class ASE
 	 */
 	private void addDynTransCols() {
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with trans dynamic columns");
+			LogTime.PrtSpMsg(2, "Updating database with trans dynamic columns");
 			mDB.executeUpdate("UPDATE trans set cntLibAI=0");
 			boolean hasReadCnts = meta.hasReadCnt();
 			
@@ -482,15 +477,16 @@ public class ASE
 				
 				if (pvalue<Globals.AI_PVALUE) cntAI[tid]++;
 				
-				if (cnt%1000==0)System.out.print("      read " + cnt + "\r");
+				if (cnt%1000==0) LogTime.r("read " + cnt);
 				cnt++;
 			}
+			rs.close();
 			for (int i=0; i<cntTrans; i++) {
 				if (sql[i]!=null) {
 					sql[i] += ", cntLibAI=" + cntAI[i] + " where TRANSid=" + i;
 					mDB.executeUpdate(sql[i]);
 				}
-				if (i%1000==0) System.out.print("      entered " + i + "\r");
+				if (i%1000==0) LogTime.r("entered " + i);
 			}
 		}
 		catch (Exception e) {ErrorReport.die(e, "update pvalues for dynamic columns");}
@@ -500,7 +496,7 @@ public class ASE
 	 */
 	private void addDynGeneCols() {
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with gene dynamic columns");
+			LogTime.PrtSpMsg(2, "Updating database with gene dynamic columns");
 			mDB.executeUpdate("UPDATE gene set cntLibAI=0");
 			boolean hasReadCnt = meta.hasReadCnt();
 			
@@ -527,15 +523,16 @@ public class ASE
 				
 				if (pvalue<Globals.AI_PVALUE) cntAI[tid]++;
 				
-				if (cnt%1000==0)System.out.print("      read " + cnt + "\r");
+				if (cnt%1000==0) LogTime.r("read " + cnt);
 				cnt++;
 			}
+			rs.close();
 			for (int i=0; i<cntGene; i++) {
 				if (sql[i]!=null) {
 					sql[i] += ", cntLibAI=" + cntAI[i] + " where GENEid=" + i;
 					mDB.executeUpdate(sql[i]);
 				}
-				if (i%1000==0) System.out.print("      entered " + i + "\r");
+				if (i%1000==0) LogTime.r("entered " + i);
 			}
 		}
 		catch (Exception e) {ErrorReport.die(e, "update gene pvalues for dynamic columns");}
@@ -546,7 +543,7 @@ public class ASE
 	 */
 	private void updateSNP() {
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with SNP replica " + odREMARK + " remarks");
+			LogTime.PrtSpMsg(2, "Updating database with SNP replica '" + odREMARK + "' remarks");
 			mDB.executeUpdate("UPDATE SNP set remark='', cntLibAI=0");
 			
 			int cntSNP = mDB.executeCount("Select max(SNPid) from SNP");
@@ -568,7 +565,8 @@ public class ASE
 					else badRep[snpid]++; 	
 				}
 			}
-	
+			rs.close();
+			
 			for (int i=0; i<cntSNP; i++) {
 				if (badRep[i]>0 || isAI[i]>0) {
 					String rm= (badRep[i]>0) ?  odREP + badRep[i] : "";
@@ -586,7 +584,7 @@ public class ASE
 	 */
 	private void updateTrans() {
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with trans " + odREMARK + " remarks");
+			LogTime.PrtSpMsg(2, "Updating database with trans '" + odREMARK + "' remarks");
 			mDB.executeUpdate("UPDATE trans set odRmk='', cntSNPAI=0");
 			
 			String [] libs = meta.getLibAbbr();
@@ -623,8 +621,7 @@ public class ASE
 					cntAddTr++;
 				}
 				if (tid%1000 == 0) 
-					System.out.print("      processed #" + tid + " " 
-							+ cntAddTrSn + " " + cntAddTr + " " +   "\r");
+					LogTime.r("processed #" + tid + " " + cntAddTrSn + " " + cntAddTr);
 			}
 			LogTime.PrtSpMsg(2,  odSNP + " " + cntAddTrSn + " " + odREP + " " + cntAddTr + "      ");
 		}
@@ -651,11 +648,13 @@ public class ASE
 					if (refCount < altCount) cnt1++;
 					else cnt2++;
 				}
+				rs.close();
+				
 				if (cnt1>0 && cnt2>0) {
 					if (!snpMsg.equals("")) snpMsg += ",";
 					snpMsg += lib;
 				}
-			}
+			}	
 			return snpMsg;
 		}
 		catch (Exception e) {ErrorReport.die(e, "add odSNP Remarks");}
@@ -664,7 +663,7 @@ public class ASE
 
 	private void updateGene() {
 		try {
-			LogTime.PrtSpMsg(1, "Updating database with gene with SNP AI count");
+			LogTime.PrtSpMsg(2, "Updating database with gene with SNP AI count");
 			mDB.executeUpdate("UPDATE gene set cntSNPAI=0");
 			
 			int cntSNPAI=0;
@@ -682,9 +681,9 @@ public class ASE
 					cntSNPAI++;
 				}
 				if (gid%1000 == 0) 
-					System.out.print("      processed #" + gid + " " + cntSNPAI +   "\r");
+					LogTime.r("processed #" + gid + " " + cntSNPAI);
 			}
-			LogTime.PrtSpMsg(2,  "Genes with at least 1 AI SNP " + cntSNPAI + 	"                 ");
+			LogTime.PrtSpMsg(2,  "Genes with at least 1 AI SNP: " + cntSNPAI + 	"                 ");
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "add Remarks");}
 	}

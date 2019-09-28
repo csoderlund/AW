@@ -9,6 +9,7 @@ package build.file;
  */
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import util.*;
-import build.Bmain;
 import build.Cfg;
 import database.DBConn;
 import database.MetaData;
@@ -53,7 +53,7 @@ public class Variants {
 		readDB();
 		int fileCnt=1;
 		for (String file : varFiles) {
-			readFileAddVariantExon(file, 	fileCnt);
+			readFileAddSNPtables(file, 	fileCnt);
 			fileCnt++;
 		}
 		chrGeneMap = null; 
@@ -65,19 +65,34 @@ public class Variants {
 	 * #CHROM  POS     ID      		REF     ALT     QUAL    FILTER  
 		chr10   3101362 rs33880920      G       C       226.33  PASS
 	 */
-	private void readFileAddVariantExon(String file, int fileCnt) {	
+	private void readFileAddSNPtables(String file, int fileCnt) {	
 		try {		
 			LogTime.PrtSpMsg(1, "Load file#" + fileCnt + " " + file);
 			BufferedReader reader = new BufferedReader ( new FileReader ( file ) ); 
 			String line="";
-			int read=0, cnt=0, newSNP=0, newIND=0, addExon=0;
+			int read=0, cnt=0, newSNP=0, newIND=0, addSNP=0, addExon=0, addTrans=0, addGene=0;
 		
+			PreparedStatement psSNP = mDB.prepareStatement("INSERT into SNP " +
+					"(rsID,isdbSNP,isSNP,chr,pos,ref, alt, qual,exonList,isCoding)" +
+					" values(?,?,?,?,?, ?,?,?,?,?)");
+			
+			PreparedStatement psExon = mDB.prepareStatement("INSERT into SNPexon " +
+					"(SNPid, EXONid) values(?,?)");
+			
+			PreparedStatement psTran = mDB.prepareStatement("INSERT into SNPtrans " +
+				    "(SNPid, TRANSid, transName, isCoding, nExon, locExon)  " +
+				    " values (?,?,?,?,?,?)");
+			
+			PreparedStatement psGene = mDB.prepareStatement("INSERT into SNPgene " +
+				    "(SNPid, GENEid, geneName) values(?,?,?)");
+			
+			// Read SNP/Indel (variant) per line
 			while ((line = reader.readLine()) != null) {
 				if (line.startsWith("#")) continue;
 				String [] tok = line.split("\t");
 				if (tok.length==0) continue;
 				if (tok.length<passCol) {
-					System.err.println("Ignore: " + line);		
+					LogTime.warn("Ignore: " + line);		
 					continue;
 				}
 				read++;
@@ -93,15 +108,15 @@ public class Variants {
 				int endPos = pos;
 				if (!isSNP && ref.length()>0) endPos += ref.length();
 				
-				String snpid = tok[nameCol];
+				String snpName = tok[nameCol];
 				int isdbSNP=1;
-				if (snpid.equals(".")) {
+				if (snpName.equals(".")) {
 					if (isSNP) {
-						snpid = "SNP" + fileCnt + "_" + newSNP;
+						snpName = "SNP" + fileCnt + "_" + newSNP;
 						newSNP++;
 					}
 					else {
-						snpid = "IND" + fileCnt + "_" + newIND;
+						snpName = "IND" + fileCnt + "_" + newIND;
 						newIND++;
 					}	
 					isdbSNP=0;
@@ -112,19 +127,21 @@ public class Variants {
 				ArrayList <Gene>geneList = new ArrayList <Gene> ();
 				boolean snpIsCoding=false;
 				
-				// transcripts with SNPs
-				// TODO include 5k up/down stream (snpeff uses 5k)
+				// transcripts with SNPs (TODO include 5k up/down stream (snpeff uses 5k))
 				String exonListStr="";
 				Vector <Gene> genes = chrGeneMap.get(chr);
+				
 				for (Gene gn : genes) {
 					if (pos < gn.start || pos > gn.end) continue;
+					
 					boolean inGene=false;			
 					for (Trans tr: gn.trans) {
 						if (!(pos >= tr.start && endPos <=tr.end)) continue;
 						Exon exon=null;			
 						String locExon="";
-						// TODO check if indels cross splice sites
-						// Since CDS exons can be contained within !CDS, we want the CDS if possible
+						
+						// EXON  (TODO check if indels cross splice sites)
+						//       Since CDS exons can be contained within !CDS, we want the CDS if possible
 						for (Exon ex : tr.exonList) {
 							if (ex.frame>=0 && pos >= ex.start && pos <= ex.end) {
 								snpIsCoding=true;
@@ -148,69 +165,98 @@ public class Variants {
 				
 						if (!allTrSet.contains(tr)) allTrSet.add(tr);
 						int code = (exon.frame >=0) ? 1 : 0;
+						
+						// Trans list
 						transMap.put(tr, new Variant(code, pos, exon.nExon, locExon));
 							
-						if (exon!=null) {
+						if (exon!=null) { // exon list
 							if (exonListStr=="") exonListStr = "" + exon.nExon;
 							else exonListStr += "," + exon.nExon;
 							exonList.add(exon);
 						}	
 					} // end loop through trans for this variant
-					if (inGene) {
+					
+					if (inGene) { // gene list
 						if (!allGeneSet.contains(gn)) allGeneSet.add(gn);
-						if (!geneList.contains(gn)) geneList.add(gn);
+						if (!geneList.contains(gn))   geneList.add(gn);
 					}
 				} // end loop through genes for this variant
 				
 				if (transMap==null || transMap.size()==0) continue;
 			
-				mDB.executeUpdate("INSERT SNP SET " +
-						" rsID=" 		+ quote(snpid) + 
-						",isdbSNP=" 	+ isdbSNP + 
-						",isSNP="		+ isSNP + 
-						",chr=" 		+ quote(chr) + 
-						",pos=" 		+ pos + 
-						",ref=" 		+ quote(ref) + 
-						",alt=" 		+ quote(alt) + 
-						",qual="		+ qual + 
-						",exonList=" + quote(exonListStr) +
-						",isCoding=" + snpIsCoding
-						);
-			
+				psSNP.setString(1, snpName);
+				psSNP.setInt(2, isdbSNP);
+				psSNP.setBoolean(3, isSNP);
+				psSNP.setString(4, chr);
+				psSNP.setInt(5, pos);
+				psSNP.setString(6, ref);
+				psSNP.setString(7, alt);
+				psSNP.setDouble(8, qual);
+				psSNP.setString(9, exonListStr);
+				psSNP.setBoolean(10, snpIsCoding);
+				psSNP.executeUpdate();
+				addSNP++;
+				
 				int SNPid=0;
 				ResultSet rs = mDB.executeQuery("select last_insert_id() as pid");  
 		        if (rs.next()) SNPid = rs.getInt("pid");
 		        else ErrorReport.die("Cannot get last_insert_id in SNPs");	
+				rs.close();
 				
+		        // SNPexon
+		        int cntAdd=0;
 		        for (Exon ex : exonList) {
 					ex.cnt(isSNP);
-					mDB.executeUpdate("INSERT SNPexon SET SNPid=" + SNPid + ", EXONid=" + ex.exonid);
-					addExon++;
+					psExon.setInt(1, SNPid);
+					psExon.setInt(2, ex.exonid);
+					psExon.addBatch();
+					addExon++; cntAdd++;
 				}
-	
+		        if (cntAdd>0) psExon.executeBatch();
+		        
+		        cntAdd=0;
 		        for (Trans tr : transMap.keySet()) {
 		        		Variant var = transMap.get(tr);
 		        		tr.cnt(isSNP, var.coding);
-				    mDB.executeUpdate("INSERT SNPtrans SET SNPid= " + SNPid + 
-				    		", TRANSid=" + tr.transid + ", transName=" + quote(tr.name) +
-				    		", isCoding=" + var.coding + ", nExon=" + var.exon + 
-				    		", locExon='" + var.loc + "'" );
+		        		
+		        		psTran.setInt(1, SNPid);
+		        		psTran.setInt(2, tr.transid);
+		        		psTran.setString(3, tr.name);
+		        		psTran.setInt(4, var.coding);
+		        		psTran.setInt(5, var.exon);
+		        		psTran.setString(6, var.loc);
+		        		psTran.addBatch();
+		        		addTrans++; cntAdd++;
 				}
+		        if (cntAdd>0) psTran.executeBatch();
+		        
+		        cntAdd=0;
 		        for (Gene gn : geneList) {
 					gn.cnt(isSNP);
-					mDB.executeUpdate("INSERT SNPgene SET SNPid=" + SNPid + ", " +
-							"GENEid=" + gn.geneid + ", geneName=" + quote(gn.name));
-					addExon++;
+					
+					psGene.setInt(1, SNPid);
+					psGene.setInt(2,gn.geneid);
+					psGene.setString(3, gn.name);
+					psGene.addBatch();
+					addGene++; cntAdd++;
 				}
+		        if (cntAdd>0) psGene.executeBatch();
+		        
 				cnt++;
-				if (cnt % 1000 == 0) 
-					System.out.print("      Read: " + read + "  SNPs: " + cnt + "  inExon: " + addExon +
-							"  New SNP: " + newSNP + "  New Indel: " + newIND +  "..." + "\r");
-			}		
-			LogTime.PrtSpMsg(2, "Read: " + read + "  Variants: " + cnt + 
+				if (cnt==100) { 
+					LogTime.r("Read: " + read + "  SNPs: " + cnt + "  inExon: " + addExon +
+							"  New SNP: " + newSNP + "  New Indel: " + newIND);
+					cnt=0;
+				}
+				
+			} // End loop through lines of file
+			
+			LogTime.PrtSpMsg(2, "Read: " + read + "  Variants: " + addSNP + 
 					 "  In Exon: " + addExon + "  New SNP: " + newSNP + "  New Indel: " + newIND + "     ");
-			LogTime.PrtSpMsg(2, "Genes with variants: " + allGeneSet.size() + " Trans with variants: " + allTrSet.size());
-			if (cnt==0 && newSNP==0 && newIND==0) ErrorReport.die("No variants added");
+			LogTime.PrtSpMsg(2, "Genes with variants: " + allGeneSet.size() + " Gene-variant pairs: " + addGene);
+			LogTime.PrtSpMsg(2, "Trans with variants: " + allTrSet.size() +   " Tran-variant pairs: " + addTrans);
+			
+			if (addSNP==0) ErrorReport.die("No variants added");
 		}
 		catch (Exception e) {ErrorReport.die(e, "Reading Variant file");}
 	}
@@ -253,23 +299,25 @@ public class Variants {
 						cntEx++;
 					}
 				}
-				mDB.executeUpdate("UPDATE trans SET " +
+				if (tr.cntSNP>0 || tr.cntIndel>0 || tr.cntSNPcode>0 || tr.cntINDcode>0) {
+					mDB.executeUpdate("UPDATE trans SET " +
 						"cntSNP=" + tr.cntSNP + ", cntIndel="+ tr.cntIndel + 
 						",cntCoding=" + tr.cntSNPcode + ", cntIDcoding="+ tr.cntINDcode + 
 						" where TRANSid="+tr.transid);
-				cntTr++;
+					cntTr++;
+				}
 			}
 			for (Gene gn : allGeneSet) {
-				mDB.executeUpdate("UPDATE gene SET " +
+				if (gn.cntSNP>0 || gn.cntIndel>0) {
+					mDB.executeUpdate("UPDATE gene SET " +
 						"cntSNP=" + gn.cntSNP + ", cntIndel="+ gn.cntIndel + " where GENEid="+ gn.geneid);
-				cntGn++;
+					cntGn++;
+				}
 			}
-			LogTime.PrtSpMsg(2, "Complete adding Variants to Genes: " + cntGn +
-					" Trans: " + cntTr + " Exons: " + cntEx);
+			LogTime.PrtSpMsg(2, "Complete update - Genes: " + cntGn +
+					"  Trans: " + cntTr + "  Exons: " + cntEx);
 		}
-		catch (Exception e) {
-			ErrorReport.die(e, "Variant: addSNPs2Trans");
-		}
+		catch (Exception e) {ErrorReport.die(e, "Variant: addSNPs2Trans");}
 	}
 	
 	/***********************************************
@@ -278,7 +326,7 @@ public class Variants {
 	private void readDB() {
 		try {
 			LogTime.PrtSpMsg(1, "Reading database for coords");
-			ResultSet rs;
+			ResultSet rs=null;
 			int cntTr=0, cntExon=0, cntGene=0;
 			MetaData md = new MetaData(mDB);
 			chrRoot = md.getChrRoot();
@@ -289,7 +337,7 @@ public class Variants {
 			}
 			
 			for (String chr : chrGeneMap.keySet()) {
-				System.out.print(("      reading database for chr " + chr + "      \r"));
+				LogTime.r("reading database for chr " + chr);
 				Vector <Gene> gvec = chrGeneMap.get(chr);
 				rs = mDB.executeQuery("Select GENEid, geneName, start, end FROM gene" +
 						" where chr='" + chr + "' order by start");
@@ -321,6 +369,7 @@ public class Variants {
 					}
 				}
 			} // loop trough chr
+			if (rs!=null) rs.close();
 			LogTime.PrtSpMsg(2, "Gene: " + cntGene + "   Trans: " + cntTr + "   Exons: " + cntExon);
 		}
 		catch (Exception e) {ErrorReport.die(e, "read DB ");}
@@ -357,13 +406,11 @@ public class Variants {
 		private Trans (int id, String n, int s, int e) {
 			transid = id;
 			name = n;
-			isPos = (s<e) ? true : false;
 			start = (s < e) ? s : e;
 			end =   (s < e) ? e : s;
 		}	
 		private void addExon(int id, int cs, int ce, int n, int f) {
 			exonList.add(new Exon(id, cs,ce,n,f));
-			cntExon++;
 		}
 		
 		private void cnt(boolean isSNP, int isCoding) {
@@ -377,8 +424,7 @@ public class Variants {
 		
 		String name;
 		int start, end, transid;
-		int cntSNP=0, cntIndel=0, cntSNPcode=0, cntINDcode=0, cntExon=0;
-		boolean isPos;
+		int cntSNP=0, cntIndel=0, cntSNPcode=0, cntINDcode=0;
 		ArrayList <Exon>exonList = new ArrayList <Exon> ();
 	}
 	private class Exon {
@@ -398,15 +444,11 @@ public class Variants {
 	private class Variant {
 		private Variant(int coding, int pos, int exon, String loc) {
 			this.coding = coding;
-			this.pos = pos;
 			this.exon = exon;
 			this.loc = loc;
 		}
-		int coding, pos, exon;
+		int coding, exon;
 		String loc="";
-	}
-	private String quote(String word) {
-		return "'" + word + "'"; 
 	}
 	private DBConn mDB;
 }

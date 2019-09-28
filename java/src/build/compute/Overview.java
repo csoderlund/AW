@@ -82,11 +82,9 @@ public class Overview {
     		 	String text = "";
     		 	for (int i=0; i< lines.size(); i++) 
     		 		text += lines.get(i) + "\n";
-    		 	
        		mDB.executeUpdate("update metaData set overview = \"" + text + "\""); 
-       		//mDB.commitChanges();
        		
-       		LogTime.PrtSpMsg(0, "Total size of rep libraries will only be written to " + ovFile);
+       		LogTime.PrtSpMsg(1, "Total size of rep libraries will only be written to " + ovFile);
        		lines.add("");
        		makeReps();
        		text = "";
@@ -157,7 +155,6 @@ public class Overview {
 			int transAI = mDB.executeCount("Select count(*) from trans where cntLibAI>0");
 			
 			int nSnp = mDB.executeCount("Select count(*) from SNP where isSNP=1");
-			int snpDam = mDB.executeCount("Select count(*) from SNP where isDamaging>0");
 			int snpCov = mDB.executeCount("Select count(*) from SNP where cntLibCov>0");
 			int snpAI = mDB.executeCount("Select count(*) from SNP where cntLibAI>0");
 			int snpLibCov = mDB.executeCount("Select sum(cntLibCov) from SNP where cntLibCov>0");
@@ -378,69 +375,9 @@ public class Overview {
 			}
 		}				
 	}
-	// XXX ratio
-	private void makeRatio() throws Exception {
-        LogTime.PrtSpMsg(1, "Make Ratio tables");
-		
-		int nRatio = Globals.ratioLabels.length;
-		int nCol = nRatio+1;			  			// one for row heading
-		String[] ratioHeaders = new String [nCol];
-		int [] ratioJustify =  new int [nCol]; 
-		
-		ratioHeaders[0] = ""; 
-		ratioJustify[0]=1;
-		for (int i=0; i<nRatio; i++) {
-			ratioHeaders[i+1] = Globals.ratioLabels[i];	
-			ratioJustify[i+1] = 0;
-		}
-		MetaData meta = new MetaData(mDB);
-		
-		Counts [] sxt = new Counts [nStrains]; // by strain
-		TreeMap<String,Integer> ratioCounts = new TreeMap<String,Integer>();
-
-		String[] titles = { "SNP Ref:Alt Ratios (Genes):",
-				            "Read Ref:Alt Ratios (Transcripts):"};
-		String [] table = {"gene", "trans"};
-		
-		for (int t = 0; t <= 1; t++) {
-			if (t==1 && !meta.hasReadCnt()) break;
-			
-			for (int i=0; i<nStrains; i++) {
-				sxt[i] = new Counts(strains[i], nTissues, nRatio);
-				for (int k=0; k<nTissues; k++) {
-					String lib = xStrain2St.get(strains[i]) + tisAbbv[k];
-					String refcol = Globals.PRE_REFCNT + lib + (t==0 ? "" : Globals.SUF_TOTCNT);
-					String altcol = Globals.PRE_ALTCNT + lib + (t==0 ? "" : Globals.SUF_TOTCNT);
-					for (String ratio : Globals.ratioLabels) ratioCounts.put(ratio, 0);
-			
-					ResultSet rs = mDB.executeQuery("select " + refcol + ", " + altcol + " from " + table[t]);
-					while (rs.next())
-					{
-						int r = rs.getInt(1);
-						int a = rs.getInt(2);
-						String ratio = Stats.ratio(r, a);
-						if (ratioCounts.containsKey(ratio))
-						{
-							ratioCounts.put(ratio, 1 + ratioCounts.get(ratio));
-						}
-					}
-					rs.close();
-					for (int j = 0; j < nRatio; j++)
-					{
-						sxt[i].setRatioCnt(k, j, ratioCounts.get(Globals.ratioLabels[j]));
-					}
-				}	
-			}
-			lines.add(titles[t]);
-			for (int i=0; i<nStrains; i++) {
-				tableRatio(strains[i], ratioHeaders, ratioJustify, sxt[i].getCnts());
-			}
-			if (t==0) lines.add("___________");
-		}				
-	}
 	
 	////////////////////////////////////////////////////////////////////////
-	// XXX expression count
+	//  Expression count
 	/// for each strain, make table of tissue where count #ref and #alt are from gene
 	/// 
 	private void makeSNPcov() {	
@@ -517,7 +454,7 @@ public class Overview {
 	
 	// This makes a table of total ref and alt counts for each individual sample
 	private void makeReps() {
-	    LogTime.PrtSpMsg(1, "Make Replica count table");
+	    LogTime.PrtSpMsg(2, "Make Replicate count table");
 		String [] headers = {"Lib", "SNP-Rep", "SNP-Alt", "Read-Rep", "Read-Alt"};
 		int [] just =        {1,   0,   0, 0, 0};
 		int nCol = just.length;
@@ -565,33 +502,6 @@ public class Overview {
 		catch (Exception e) {
 			ErrorReport.prtError(e, "create function summary");
 		}
-	}
-	
-    //////////////////////////////////////////////////////////////////////// 
-	private void tableRatio(String strain, String [] headers, int [] just, int [][] refCnt) {
-		
-		lines.add(" " + strain);
-		
-		int nCol = headers.length;
-		int nRow = nTissues+1;
-		int [] totRef = new int[nCol];
-		for (int i=0; i<nCol; i++) totRef[i]=0;
-		
-		rows = new String[nTissues+1][nCol];
-		for (int r=0; r<nTissues; r++) {
-			rows[r][0] = tissues[r];
-			for (int c=1; c<nCol; c++)  {
-				rows[r][c] = format(refCnt[r][c-1]) ;
-				totRef[c] += refCnt[r][c-1];
-			}
-		}
-		if (nTissues>1) {
-			rows[nTissues][0] = "Total";
-			for (int c=1; c<nCol; c++) rows[nTissues][c] = format(totRef[c]);
-		}
-		else nRow=1;
-		makeTable(nRow, nCol,  headers, just); 
-		lines.add("");
 	}
 	
 	private void makeTable(int nRow, int nCol, String[] headers, int [] justify)
@@ -643,7 +553,7 @@ public class Overview {
     			if (s == null) return " ";
             if (s.length() > width) {
                 String t = s.substring(0, width-1);
-                System.out.println("'" + s + "' truncated to '" + t + "'");
+                LogTime.warn("'" + s + "' truncated to '" + t + "'");
                 s = t;
                 s += " ";
             }
@@ -672,138 +582,7 @@ public class Overview {
 		else s = Integer.toString(n);
 		return s;
 	}	
-		
-	private class Counts {
-		public Counts(String s, int row, int col) {
-			cnts = new int[row][col];
-			label = s;
-		}
-		int [][] cnts;
-		String label;
-		
-		public int [][] getCnts() {
-			return cnts;
-		}
-		public void setRatioCnt(int r, int c, int cnt) {
-			cnts[r][c] = cnt;
-		}
-	}
-
-	/*************************************
-	 * Obsolete probably
-	 *
-	private void makeExpOld() {	
-	    LogTime.PrtSpMsg(1, "Make Expression count table");
-		String [] szCol = {"", "0", "1-9", "10-49", "50-99", "100-199", "200-499", "500-999", ">1000"};
-		int [] szJust =   {1,   0,   0,      0,      0,        0,        0,         0,          0};
-		int [] sizes	    =       {0,  9,     49,     99,       199,       499,     999,      10000000};
-				
-		try {							
-			CntExp [] exp = new CntExp [nStrains]; 
-			long [] total= new long [nStrains];
-			long [] totRef = new long [nStrains];
-			long [] totAlt = new long [nStrains];
-			
-			for (int s=0; s<nStrains; s++) {
-				exp[s] = new CntExp(strains[s], nTissues, sizes.length);
-				total[s] = totRef[s] = totAlt[s] = 0;
-				
-				for (int t=0; t<nTissues; t++) {
-					String lib = strAbbv[s] + tisAbbv[t];
-					ResultSet rs = mDB.executeQuery("Select refCount, altCount " +
-						"from geneLib where libName=" + quote(lib) + " and repNum=0");
-
-					while (rs.next()) {
-						int refCount = rs.getInt(1);
-						int altCount = rs.getInt(2);
-						total[s] += refCount + altCount;
-						totRef[s] += refCount;
-						totAlt[s] += altCount;
-					
-						for (int i=0; i<sizes.length; i++) {
-							if (refCount <= sizes[i]) {
-								exp[s].addCntRep(t, i);
-								break;
-							}
-						}
-						for (int i=0; i<sizes.length; i++) {
-							if (altCount <= sizes[i]) {
-								exp[s].addCntAlt(t, i);
-								break;
-							}
-						}
-					}
-				}
-			}	
-			
-			lines.add("For each range: #Genes with Ref Cov, #Genes with Alt Cov");
-			for (int i=0; i<nStrains; i++) {
-				tableExp(strains[i], szCol, szJust, exp[i].getCntRep(), exp[i].getCntAlt());
-				String ref = Format.percent(totRef[i],total[i]);
-				String alt = Format.percent(totAlt[i],total[i]);
-				lines.add("   Ref:"  + df.format(totRef[i]) + " (" + ref + ")" +
-						", Alt: "+ df.format(totAlt[i]) + " (" + alt + ")" +
-						", Total:" +  df.format(total[i]));
-				lines.add("  ");
-			}			
-		}
-		catch (Exception e) {
-			ErrorReport.prtError(e, "create function summary");
-		}
-	}
-	private void tableExp(String strain, String [] headers, int [] just, int [][] refCnt, int [][] altCnt) {
-		
-		lines.add(" " + strain);
-		
-		int nCol = headers.length;
-		int nRow = nTissues+1;
-		
-		int [] totRef = new int[nCol];
-		int [] totAlt = new int[nCol];
-		for (int i=0; i<nCol; i++) totRef[i]=totAlt[i]=0;
-		
-		rows = new String[nTissues+1][nCol];
-		for (int r=0; r<nTissues; r++) {
-			rows[r][0] = tissues[r];
-			for (int c=1; c<nCol; c++)  {
-				rows[r][c] = format(refCnt[r][c-1]) + "," + format(altCnt[r][c-1]);
-				totRef[c] += refCnt[r][c-1];
-				totAlt[c] += altCnt[r][c-1];
-			}
-		}
-		if (nTissues>1) {
-			rows[nTissues][0] = "Total";
-			for (int c=1; c<nCol; c++) rows[nTissues][c] = format(totRef[c]) + ":" + format(totAlt[c]);
-		}
-		else nRow=1;
-		
-		makeTable(nRow, nCol,  headers, just); 
-		lines.add("");
-	}
-	private class CntExp {
-		public CntExp(String s, int row, int col) {
-			rep = new int[row][col];
-			alt = new int[row][col];
-			strain = s;
-		}
-		int [][] rep;
-		int [][] alt;
-		String strain;
-		
-		public void addCntRep(int row, int col) {
-			rep[row][col]++;
-		}
-		public void addCntAlt(int row, int col) {
-			alt[row][col]++;
-		}
-		public int [][] getCntRep() {
-			return rep;
-		}
-		public int [][] getCntAlt() {
-			return alt;
-		}
-	}
-	***********************************************************/
+	/***********************************************************/
 	private DBConn mDB;
 	private MetaData meta;
 	private String [][] rows = null;

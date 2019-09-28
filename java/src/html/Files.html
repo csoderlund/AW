@@ -2,11 +2,11 @@
 <h2>Input files</h2>
 <h3>1. Raw reads (pipeline only</h3>
 <i><b>The naming is very important</i></b>, as the <tt>runAW</tt> software uses the name to decode the 
-<br>conditions and replicas. The AW allows one or two conditions, which you will define in 
+<br>conditions and replicates. The AW allows one or two conditions, which you will define in 
 <br>the runAW program that builds the database. The runAW has a table for each condition, 
 <br>where it asks for the name and abbrevation. The best way to explain is with an example:
 <p>Say there were two inbred parents and a hybrid, where the transcriptome was extracted 
-<br>from the root and leaves with two replicas; there would be 6 libraries and 12 samples.
+<br>from the root and leaves with two replicates; there would be 6 libraries and 12 samples.
 <p>Condition #1
 <table border=1 cellspacing=3 cellpadding=3>
 <tr><td>Name<td>Abbr<td>isHybrid
@@ -48,7 +48,7 @@ If necessary, rename  your files -- it does not take long.
 <li>The input file to AW must end with the suffix ".bed".
 <br>Anything from the first "." to the end is removed before parsing for the library name 
 and replica number (e.g. X9Rt1.ase.bed, the "ase.bed" will be removed.)
-<li>If there are no replicas, then it is okay for none of the files to have replica numbers.
+<li>If there are no replicates, then it is okay for none of the files to have replica numbers.
 <li>To indicate pairing, add suffixes "_R1","_R2", e.g. "R9Rt1_R1.fq". (You can use other
 suffixes too; see the Pipeline documentation)
 </ol>

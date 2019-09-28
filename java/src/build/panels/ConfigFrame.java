@@ -272,7 +272,8 @@ public class ConfigFrame extends JFrame
 					{
 						try
 						{
-							hostCfg.deleteDB(dbName);
+							if (hostCfg.deleteDB(dbName))
+								System.out.println("Complete delete " + dbName);
 						}
 						catch(Exception e)
 						{

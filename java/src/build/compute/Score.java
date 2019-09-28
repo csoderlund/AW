@@ -1,5 +1,7 @@
 package build.compute;
-
+/**************************************************
+ * NOT USED
+ */
 import java.sql.ResultSet;
 import java.util.TreeMap;
 import java.util.HashMap;
@@ -13,8 +15,6 @@ import util.LogTime;
 import database.DBConn;
 
 public class Score {
-	private boolean STDOUT=false;
-	
 	public Score(DBConn m) {
 		mDB = m;
 		try {
@@ -63,7 +63,6 @@ public class Score {
 			
 			Vector <String> fam = Align.getFamilies();
 			for (int i=0; i<fam.size(); i++) {
-				if (STDOUT) System.out.println("      >>> Fam " + (i+1));
 				String [] sym = fam.get(i).split(":");
 				
 				int total=0, n=0;
@@ -77,8 +76,6 @@ public class Score {
 					double freq = ((double) codonFreq.get(codon)/ (double) codonCnt)*1000;
 					codonRSCU.put(codon, rscu);
 					// freq is good match to http://www.kazusa.or.jp/codon/cgi-bin/showcodon.cgi?species=10090
-					if (STDOUT)
-						System.out.format("      %s %8d %3.2f %5.2f\n", codon, codonFreq.get(codon), rscu, freq);
 				}	
 			}
 			LogTime.PrtSpMsg(2, "Frequency " + codonFreq.size());
@@ -91,7 +88,6 @@ public class Score {
 				if (codons!=null && !codons.equals("-"))
 				   info.add(rs.getInt(1) + ":" + rs.getInt(2) + ":" + rs.getString(3) + ":" + rs.getString(4));
 			}
-			if (STDOUT) LogTime.PrtSpMsg(2, "SNPtrans " + info.size());
 			
 		// for SNPtrans.AA string (e.g. T/S or T), enter RSCU and bichem
 			Pattern patCodons =   Pattern.compile("(\\w\\w\\w)/(\\w\\w\\w)"); 
@@ -111,7 +107,6 @@ public class Score {
 				// process codons for RSCU, base
 				Matcher x = patCodons.matcher(codons);
 				if (!x.find()) {
-					if (skip<3 && STDOUT) System.out.println("    No codons " + snpid + " " + transid + " " + codons);
 					skip++;
 					continue;
 				}

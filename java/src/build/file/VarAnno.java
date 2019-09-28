@@ -22,7 +22,6 @@ import util.LogTime;
 import database.DBConn;
 import database.MetaData;
 import build.Cfg;
-import build.compute.Compute;
 
 public class VarAnno {
 	private Vector <String> varAnnoVec; 
@@ -68,7 +67,7 @@ public class VarAnno {
 	 * - they are changing from effect classic to seq.ontology, which EVP uses and we will use  
 	 */
 	private void loadSnpEFF() {
-		ResultSet rs;
+		ResultSet rs=null;
 		HashMap <String, String> so = new HashMap <String,String> ();
 		so.put("codon_change", "coding_sequence_variant");
 		so.put("codon_insertion", "inframe_insertion");
@@ -113,8 +112,12 @@ public class VarAnno {
 				int pos = rs.getInt(3);
 				varMap.put((chr + ":" + pos), snpid);
 			}	
+			rs.close();
+			if (varMap.size()==0) 
+				LogTime.die("No variants in database");
+			
 			HashMap<String,Integer> transMap = new HashMap<String,Integer>();
-			rs = mDB.executeQuery("select SNP.snpid,trans.transiden, trans.transid " +
+			rs = mDB.executeQuery("select SNP.snpid, trans.transiden, trans.transid " +
 					" from SNP " +
 					" join SNPtrans on SNPtrans.snpid=SNP.snpid " +
 					" join trans on trans.transid=SNPtrans.transid");
@@ -124,24 +127,22 @@ public class VarAnno {
 				int transid = rs.getInt(3);
 				transMap.put((snpid+":"+ens), transid);
 			}
-			
+			rs.close();
 			String chrRoot = new MetaData(mDB).getChrRoot();
 			
-			LogTime.PrtSpMsg(1, "Variants: " + varMap.size() + " Transcripts-Variants pairs: " + transMap.size());
+			LogTime.PrtSpMsg(2, "Variants: " + varMap.size() + "  Transcripts-Variants pairs: " + transMap.size());
 			
-			PreparedStatement ps2 = mDB.prepareStatement("update SNPtrans " +
-					"set effect=?, codons=?, AAs=?, AApos=? " +
-					"where snpid=? and transid=?");	
+			PreparedStatement ps1 = mDB.prepareStatement("update SNPtrans " +
+					"set effect=?, codons=?, AAs=?, AApos=? where snpid=? and transid=?");	
 			Pattern effPat =   Pattern.compile("(\\w+)\\((.*)\\)"); 
 			Pattern aaPat =   Pattern.compile("(\\D+)(\\d+)(\\D*)"); 
-			int batch=0, skipTrans=0, skipSNP=0, cntLines=0;
 			HashMap<Integer,String> snpAnno = new HashMap<Integer,String>();
 			int cntFile=0, cntChrErr=0;
 			
 		// loop through files
 			for (String file : varAnnoVec)
 			{
-				int cntAdd=0;
+				int cntAdd=0, cntFileTotal=0, skipTrans=0, skipSNP=0, cntLines=0;
 				cntFile++;
 				LogTime.PrtSpMsg(1, "File #" + cntFile + " " + file);
 				
@@ -156,7 +157,7 @@ public class VarAnno {
 					if (chr.startsWith(chrRoot)) chr = chr.substring(chrRoot.length());
 					else {
 						if (cntChrErr<5) 
-							LogTime.PrtWarn("Line does not start with seqname root '" + chrRoot + "'" + "\nLine: " + line);
+							LogTime.PrtWarn("Line does not start with seqname prefix '" + chrRoot + "'" + "\nLine: " + line);
 						else if (cntChrErr==5) LogTime.PrtWarn("Surpressing further such warnings");
 						cntChrErr++;
 					}
@@ -220,54 +221,54 @@ public class VarAnno {
 						if (transMap.containsKey(key2)) {
 							int tid = transMap.get(key2);
 							effect = effect.toLowerCase();
-							ps2.setString(1,effect);
-							ps2.setString(2, codon);
-							ps2.setString(3, AAs);
-							ps2.setInt(4,  AApos);
-							ps2.setInt(5,SNPid); // where clause
-							ps2.setInt(6,tid);
-							ps2.addBatch();
-							batch++; cntAdd++;
-							if (batch % 1000 == 0) {
-								ps2.executeBatch();
-								System.out.print("      processed " + batch + "\r");
+							ps1.setString(1,effect);
+							ps1.setString(2, codon);
+							ps1.setString(3, AAs);
+							ps1.setInt(4,  AApos);
+							ps1.setInt(5,SNPid); // where clause
+							ps1.setInt(6,tid);
+							ps1.addBatch();
+							cntFileTotal++; cntAdd++;
+							if (cntAdd==1000) {
+								ps1.executeBatch();
+								LogTime.r("processed " + cntFileTotal + " from " + cntLines);
+								cntAdd=0;
 							}
 							
-							if (!snpAnno.containsKey(SNPid))
-								snpAnno.put(SNPid, effect);
+							if (!snpAnno.containsKey(SNPid)) snpAnno.put(SNPid, effect);
 							else {
 								String e = snpAnno.get(SNPid);
 								if (!e.contains(effect))
 									snpAnno.put(SNPid, e + DELIM + effect);
 							}
 						}
-						else {
-							skipTrans++;
-						}
+						else skipTrans++;
 					}
 				} // end read
-				LogTime.PrtSpMsg(2, "Added: " + cntAdd + "                                  ");
+				if (cntAdd>0) ps1.executeBatch();
+				
+				LogTime.PrtSpMsg(2, "Update SNP-trans: " + cntFileTotal + "                                  ");
 				if (skipSNP>0 || skipTrans>0) 
 					LogTime.PrtSpMsg(2, "Skipped SNPs: " + skipSNP + "  skipped Trans: " + skipTrans);
 			} // end files
 		
 			LogTime.PrtSpMsg(1, "Update mySQL Variant tables                        ");
 			PreparedStatement ps = mDB.prepareStatement("update SNP set effectList=? where snpid=?");
-			int batch2 = 0;
+			int cntAdd=0, cntDesc=0;
 			for (int snpid : snpAnno.keySet())
 			{
 				ps.setInt(2, snpid);
 				ps.setString(1,snpAnno.get(snpid));
 				ps.addBatch();
-				batch2++;
+				cntAdd++; cntDesc++;
 				
-				if (batch2 % 1000 == 0) {
+				if (cntAdd==1000) {
 					ps.executeBatch(); 
-					System.err.print("   Finalize variants " + batch2 + "                   \r");
+					LogTime.r("Finalize variants " + cntDesc);
 				}
 			}
-			if (batch2 > 0) ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Added " + batch + " descriptions (of " + cntLines + ")");
+			if (cntAdd > 0) ps.executeBatch();
+			LogTime.PrtSpMsg(2, "Added descriptions: " + cntDesc);
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "Loading the snpEFF files ");}
 	}
@@ -301,6 +302,7 @@ public class VarAnno {
 					snpbyChr.put(chr, new HashMap<Integer,Integer>());
 				snpbyChr.get(chr).put(pos, snpid);
 			}	
+			rs.close();
 			
 			// create hash of key SNPid with value hashSet of transiden (ensembl)
 			rs = mDB.executeQuery("select SNP.snpid,trans.transiden, trans.transid " +
@@ -316,33 +318,31 @@ public class VarAnno {
 					transID.put(transiden, rs.getInt(3));
 				}
 			}
+			rs.close();
 			
-			int M=0;
-			int tried = 0;
-			int skipSNP = 0, skipBadChr=0, cntAdd=0;
-			int skipTrans = 0;
-			int skipSNPTrans = 0;
+			int tried = 0, skipSNP = 0, skipBadChr=0;
 			HashSet<Integer> seen = new HashSet<Integer>();
-			int batched = 0;
 			
 			// read exon_indels.annot.txt, exon_snps.annot.txt, and gatk.calls.exon.annot.txt
 			// create hashMap of key SNPid with value hash of annotations
 			// enter annotation per transcript into SNPtrans table
 			HashMap<Integer, String> snpAnno = new HashMap<Integer, String>();
 		
-			PreparedStatement ps2 = mDB.prepareStatement("update SNPtrans " +
+			PreparedStatement ps1 = mDB.prepareStatement("update SNPtrans " +
 					"set effect=?, cDNApos=?, CDSpos=?, AApos=?, AAs=?, codons=? " +
 					"where snpid=? and transid=?");		
 						
 			for (String file : varAnnoVec)
 			{
 				LogTime.PrtSpMsg(1, "Load " + file);
+				int cntAdd=0, cntFileTotal=0, skipTrans = 0, skipSNPTrans = 0;
+				
 				BufferedReader br = new BufferedReader(new FileReader(new File(file)));
 				while (br.ready()) {
 					String line = br.readLine();
 					if (line.startsWith("#")) continue;
 					tried++;
-					if (tried %1000==0) System.err.print("         read " + tried + "            \r");
+					if (tried %1000==0) LogTime.r("read " + tried);
 					String[] f = line.split("\\t");
 					
 					String[] chrpos = f[1].split(":");
@@ -354,7 +354,7 @@ public class VarAnno {
 					
 					if (!snpbyChr.containsKey(chr)) {
 						skipBadChr++;
-						if (skipBadChr<5) LogTime.PrtWarn("bad chr:" + line);
+						if (skipBadChr<5) LogTime.PrtWarn("Bad chr:" + line);
 						else if (skipBadChr==5) LogTime.PrtWarn("Surpressing further bad chr errors");
 						continue;
 					}
@@ -385,7 +385,7 @@ public class VarAnno {
 					
 					if (!snp2trans.containsKey(snpid) || !snp2trans.get(snpid).contains(trans)) {
 						skipSNPTrans++;
-						continue; // CAS 7/25/14
+						continue; 
 					}
 					// indels can have field -, or d+-d+
 					int cDNApos = 0, CDSpos=0, AApos=0;
@@ -393,20 +393,22 @@ public class VarAnno {
 					try {CDSpos = Integer.parseInt(f[8].replaceAll("\\-\\d+", ""));} catch (Exception e) {};
 					try {AApos = Integer.parseInt(f[9].replaceAll("\\-\\d+", ""));} catch (Exception e) {};
 					
-					M++;
-					ps2.setString(1,annot);
-					ps2.setInt(2, cDNApos); 
-					ps2.setInt(3, CDSpos); 
-					ps2.setInt(4, AApos); 
-					ps2.setString(5, f[10]);		// A->A
-					ps2.setString(6, f[11]);		// codon->codon
-					ps2.setInt(7,snpid); // where clause
-					ps2.setInt(8,tid);
-					ps2.addBatch();
-					batched++; cntAdd++;
-					if (batched % 1000 == 0) ps2.executeBatch();
+					ps1.setString(1,annot);
+					ps1.setInt(2, cDNApos); 
+					ps1.setInt(3, CDSpos); 
+					ps1.setInt(4, AApos); 
+					ps1.setString(5, f[10]);		// A->A
+					ps1.setString(6, f[11]);		// codon->codon
+					ps1.setInt(7,snpid); // where clause
+					ps1.setInt(8,tid);
+					ps1.addBatch();
+					cntAdd++; cntFileTotal++;
+					if (cntAdd==1000) {
+						ps1.executeBatch();
+						cntAdd=0;
+						LogTime.r("processed " + cntFileTotal);
+					}
 					
-					// CAS 5/6/14 changed to remove duplicates
 					if (!snpAnno.containsKey(snpid)) 
 						snpAnno.put(snpid, effect);
 					else {
@@ -414,31 +416,31 @@ public class VarAnno {
 						if (!e.contains(effect))
 							snpAnno.put(snpid, e + DELIM + effect);
 					}
-				}
-				if (batched > 0) ps2.executeBatch();
-				LogTime.PrtSpMsg(2, "Added: " + cntAdd + "                                  ");
-				if (skipSNP>0 || skipTrans>0) 
-					LogTime.PrtSpMsg(2, "Skipped SNPs: " + skipSNP + "  skipped Trans: " + skipTrans);
-			}
+				} // end reading file
+				if (cntAdd > 0) ps1.executeBatch();
+				LogTime.PrtSpMsg(2, "Update SNP-trans: " + cntFileTotal + "                                  ");
+				if (skipSNP>0 || skipTrans>0 || skipSNPTrans>0) 
+					LogTime.PrtSpMsg(2, "Skipped SNPs: " + skipSNP + "  skipped Trans: " + skipTrans
+							+ "  skip SNP Trans: " + skipSNPTrans);
+			} // end loop through files
 			
 			LogTime.PrtSpMsg(1, "Update mySQL Variant tables                        ");
 			PreparedStatement ps = mDB.prepareStatement("update SNP set effectList=? where snpid=?");
-			batched = 0;
+			int cntAdd=0, cntFinal=0;
 			for (int snpid : snpAnno.keySet())
 			{
 				ps.setInt(2, snpid);
 				ps.setString(1, snpAnno.get(snpid));
 				ps.addBatch();
-				batched++;
+				cntAdd++; cntFinal++;
 				
-				if (batched % 100 == 0) {
-					System.err.print("   Finalize variants " + batched + "                   \r");
+				if (cntAdd==1000) {
+					LogTime.r("Finalize variants " + cntFinal);
 					ps.executeBatch(); 
 				}
 			}
-			if (batched > 0) ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Added " + M + " descriptions (of " + tried + ")  Skipped " +
-					" SNP:" + skipSNP + " trans:" + skipTrans + " snp/trans:" + skipSNPTrans);
+			if (cntAdd > 0) ps.executeBatch();
+			LogTime.PrtSpMsg(2, "Added " + cntFinal + " descriptions (of " + tried + ")");
 			if (skipBadChr>0) LogTime.PrtSpMsg(3, "Skipped SNPs due to unknown chromosome: " + skipBadChr);
 		} 
 		catch(Exception e) {

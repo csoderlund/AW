@@ -16,7 +16,7 @@ public class Bmain {
 	static public  String project = "mus"; // project = dbName without AW_ prefix
 	static public boolean DOCLUSTERSNP = true;
 	/*************************************
-	 * called from loadAW -- AW.cfg must exist
+	 * called from buildAW -- AW.cfg must exist
 	 */
 	public static void main(String[] args) {	
 		if (args.length==0 || args[0].startsWith("-")) {
@@ -42,7 +42,7 @@ public class Bmain {
 		buildArgs(action, prtCfgToScreen);
 	}
 	/*******************************************
-	 * called from ConfigureFrame after AW.cfg file is written
+	 * called from runAW build.panels.ConfigureFrame after AW.cfg file is written
 	 */
 	public static void build(String dbName) {
 		project = dbName;
@@ -110,7 +110,6 @@ public class Bmain {
 		HostCfg hostCfg = new HostCfg();
 		mDB = hostCfg.openDB(project, action); // checks if exists, creates, or use existing
 		if (mDB==null) return;
-		mDB.setAutoCommit(true); // CAS 12/28/14 needed for updates on Mac
 		
 		if (loadCfg) {
 			if (!cfg.validate()) {
@@ -124,19 +123,21 @@ public class Bmain {
 		if (action==0) {
 			LogTime.PrtDateMsg("+++Start building entire database+++");
 			// Order of these 4 is important. 
-			new Genes(mDB, cfg); 	LogTime.PrtSpMsg(0, "--Finish Step 1");
-			new Variants(mDB,cfg);	LogTime.PrtSpMsg(0, "--Finish Step 2"); 
-			new VarAnno(mDB, cfg);	LogTime.PrtSpMsg(0, "--Finish Step 3"); // may add cDNApos
-			new GenTrans(mDB, cfg, project); LogTime.PrtSpMsg(0, "--Finish Step 4"); 	// else add here
-			new VarCov(mDB, cfg, 0);	LogTime.PrtSpMsg(0, "--Finish Step 5"); // needed here
-	 
-			new GeneAnno(mDB, cfg);	LogTime.PrtSpMsg(0, "--Finish Step 6");
-			if (cfg.hasExpDir()) {new GeneCov(mDB, cfg); LogTime.PrtSpMsg(0, "--Step 6b");} 
-			new ASE(mDB);			LogTime.PrtSpMsg(0, "--Finish Step 7"); 
-			new Compute(mDB, 0); 	LogTime.PrtSpMsg(0, "--Finish Step 8");
-			new Overview(mDB, logDir);	LogTime.PrtSpMsg(0, "--Finish Step 9"); 
+			new Genes(mDB, cfg); 		LogTime.PrtSpMsg(0, "--Finish Step 1");
+			new Variants(hostCfg.renew(),cfg);		LogTime.PrtSpMsg(0, "--Finish Step 2"); 
+			new VarAnno(hostCfg.renew(), cfg);		LogTime.PrtSpMsg(0, "--Finish Step 3"); // may add cDNApos
+			new GenTrans(hostCfg.renew(), cfg, project); LogTime.PrtSpMsg(0, "--Finish Step 4"); 	// else add here
+			new VarCov(hostCfg.renew(), cfg, 0);		LogTime.PrtSpMsg(0, "--Finish Step 5"); // needed here
+			
+			new GeneAnno(hostCfg.renew(), cfg);		LogTime.PrtSpMsg(0, "--Finish Step 6");
+			if (cfg.hasExpDir()) 
+				{new GeneCov(hostCfg.renew(), cfg); LogTime.PrtSpMsg(0, "--Step 6b");} 
+			
+			new ASE(hostCfg.renew());				LogTime.PrtSpMsg(0, "--Finish Step 7"); 
+			new Compute(hostCfg.renew(), 0); 		LogTime.PrtSpMsg(0, "--Finish Step 8");
+			new Overview(hostCfg.renew(), logDir);	LogTime.PrtSpMsg(0, "--Finish Step 9"); 
 		}
-		// these only execute from loadAW
+		// these only execute from buildAW (command line)
 		else if (action==1) new Genes(mDB, cfg);
 		else if (action==2) new Variants(mDB, cfg);	
 		else if (action==3) {
@@ -199,6 +200,7 @@ public class Bmain {
 							", remark='" + remark + "'");
 				}
 			}
+			mDB.close(); // CASQ 7Sept19
 		}
 		catch (Exception e) {LogTime.PrtSpMsg(1, "ChgData not added");}
 		

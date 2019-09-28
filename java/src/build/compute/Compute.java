@@ -4,6 +4,7 @@ package build.compute;
  * 		alt+ref, ratio, cntLib
  */
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -94,6 +95,7 @@ public class Compute {
 			HashSet <Integer> entitySet = new HashSet <Integer> ();
 			ResultSet rs = mDB.executeQuery("Select " + IDCol + " from " + table);
 			while (rs.next()) entitySet.add(rs.getInt(1));
+			rs.close();
 			
 			String r = Globals.PRE_REFCNT;
 			String a = Globals.PRE_ALTCNT;
@@ -105,7 +107,7 @@ public class Compute {
 			int cnt = 0, addCnt=0;
 			for (Integer ID : entitySet) { 
 				cnt++;
-				if (cnt % 1000 == 0) System.out.print("      " + table + " #" + cnt + " " + ID + " ...\r");
+				if (cnt % 1000 == 0) LogTime.r(table + " #" + cnt + " " + ID);
 				
 				int cntLib=0;
 				String ratSQL = "UPDATE " + table + " SET ";
@@ -127,6 +129,8 @@ public class Compute {
 						}
 					}
 				}
+				rs.close();
+				
 				if (cntLib>0) {
 					addCnt++;
 					if (! table.equals("SNP")) ratSQL += " cntLib=" + cntLib;
@@ -178,20 +182,29 @@ public class Compute {
 			}
 			rs.close();
 			
-			int cntS=0;
+			mDB.openTransaction();
+			PreparedStatement ps = mDB.prepareStatement("update SNP set " +
+					"isDamaging=?, isMissense=? where SNPid=?");
+			int cntS=0, cntAdd=0;
 			for (int i=0; i<=cntSNP; i++) {
 				if (snpMis[i]>0) {
-					mDB.executeUpdate("Update SNP SET " +
-							"isDamaging=" + snpDam[i] + ",isMissense=" + snpMis[i] +  
-							" where SNPid=" + i);
+					ps.setInt(1, snpDam[i]);
+					ps.setInt(2, snpMis[i]);
+					ps.setInt(3, i);
+					ps.addBatch();
+					cntAdd++;
+					if (cntAdd==1000) {
+						ps.executeBatch();
+						cntAdd=0;
+					}
 					cntS++;
 				}
-			}		
-			LogTime.PrtSpMsg(2, "Updated SNPs " + cntS + "                   ");
+			}	
+			if (cntAdd>0) ps.executeBatch();
+			mDB.closeTransaction();
+			LogTime.PrtSpMsg(2, "Updated SNPs: " + cntS + "                   ");
 		}
-		catch (Exception e) {
-			ErrorReport.prtError(e, "add SNP counts error");
-		}
+		catch (Exception e) {ErrorReport.prtError(e, "add SNP counts error");}
 	}
 	/********************************************
 	 * add missense counts to transcripts
@@ -229,24 +242,49 @@ public class Compute {
 			}
 			rs.close();
 			
+			mDB.openTransaction();
+			PreparedStatement ps0 = mDB.prepareStatement("Update trans SET " +
+					" cntMissense=?, cntDamage=? where TRANSid=?");
 			// update trans
-			int cntT=0, cntS=0;
+			int cntT=0, cntS=0, cntAdd=0;
 			for (int i=0; i<=cntTrans; i++) {
 				if (cntMis[i]==0) continue;
 				
-				mDB.executeUpdate("Update trans SET " +
-						" cntMissense=" + cntMis[i] + ", cntDamage=" + cntDam[i] + 
-						" where TRANSid="+i);
+				ps0.setInt(1, cntMis[i]);
+				ps0.setInt(2, cntDam[i]);
+				ps0.setInt(3, i);
+				ps0.addBatch();
+				cntAdd++;
+				if (cntAdd==1000) {
+					ps0.executeBatch();
+					cntAdd=0;
+				}
 				cntT += cntMis[i];
 				cntS += cntDam[i];
 			}
+			if (cntAdd>0) ps0.executeBatch();
+			mDB.closeTransaction();
+			
+			cntAdd=0;
+			mDB.openTransaction();
+			PreparedStatement ps1 = mDB.prepareStatement("Update SNPtrans SET " +
+					" isMissense=?, isDamaging=? where TRANSid=? and SNPid=?");
 			// update SNPtrans -- these two fields depend on locations so are trans specific
 			for (String st : snpTransVec) {
 				String [] tok = st.split(":");
-				mDB.executeUpdate("Update SNPtrans SET " +
-						" isMissense=" + tok[2] + ", isDamaging="   + tok[3] +
-						" where TRANSid="+tok[0] + " and SNPid=" + tok[1]);
+				ps1.setInt(1, Integer.parseInt(tok[2]));
+				ps1.setInt(2, Integer.parseInt(tok[3]));
+				ps1.setInt(3, Integer.parseInt(tok[0]));
+				ps1.setInt(4, Integer.parseInt(tok[1]));
+				ps1.addBatch();
+				cntAdd++;
+				if (cntAdd==1000) {
+					ps1.executeBatch();
+					cntAdd=0;
+				}
 			}
+			if (cntAdd>0) ps0.executeBatch();
+			mDB.closeTransaction();
 			LogTime.PrtSpMsg(2, "Trans Missense SNPS: " + cntT +  " Damaging: " + cntS);
 		}
 		catch (Exception e) {ErrorReport.die(e, "add Trans counts");}
@@ -269,6 +307,8 @@ public class Compute {
 				if (damGeneMap.containsKey(geneid)) damGeneMap.put(geneid, damGeneMap.get(geneid)+1);
 				else damGeneMap.put(geneid, 1);
 			}
+			rs.close();
+			
 			for (int geneid : damGeneMap.keySet()) {
 				mDB.executeUpdate("Update gene set cntMissense=" + damGeneMap.get(geneid) +
 						" where GENEid=" + geneid);
@@ -320,6 +360,7 @@ public class Compute {
 			rs = mDB.executeQuery("SELECT GENEid from gene");
 			int g=0;
 			while (rs.next()) geneidList[g++] = rs.getInt(1);
+			rs.close();
 			
 			int cnt=0;
 			for (int geneid : geneidList) {
@@ -338,6 +379,7 @@ public class Compute {
 					while (rs.next()) {
 						tr.add(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5));
 					}
+					rs.close();
 				}
 				
 				Arrays.sort(trList);
@@ -353,9 +395,9 @@ public class Compute {
 				}
 				if (rank>1) cnt++;
 				if (cnt % 1000 == 0) 
-					System.out.print("      processed " + cnt + "\r");
+					LogTime.r("processed " + cnt);
 			} // end loop through genes	
-			LogTime.PrtSpMsgTime(2, "Rank=1 " + cnt + "                           ", st);
+			LogTime.PrtSpMsgTime(2, "Rank=1: " + cnt + "                           ", st);
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "add Best Trans");}
 	}
@@ -411,13 +453,14 @@ public class Compute {
 				if (s.equals("-")) start = -start;
 				transMap.put(id, start);
 			}
+			rs.close();
 			LogTime.PrtSpMsg(2, "Trans with >0 variants " + transMap.size());
 			
 			int cnt=0;
 			for (int TRANSid : transMap.keySet()) {
 				cnt++;
 				if (cnt%1000==0) 
-					System.out.print("      processed " + cnt + "\r");
+					LogTime.r("processed " + cnt);
 				int start = transMap.get(TRANSid);
 				String order = "";
 				if (start<0) {
@@ -436,6 +479,7 @@ public class Compute {
 					pos[i] = rs.getInt(2);
 					i++;
 				}
+				rs.close();
 				
 				// enter into database, last variant has diff of 0, which is default
 				for (i=0; i<cntTrSNP-1; i++) {
@@ -446,30 +490,12 @@ public class Compute {
 					mDB.executeUpdate("UPDATE SNPtrans " +
 							" SET dist=" + diff +   
 							" where SNPid=" + snpid[i] + " and TRANSid=" + TRANSid);
-					
-					//if (!diffList[snpid[i]].contains(";"+diff+";")) diffList[snpid[i]] += diff+";";
 				}
 			}
 			int p = (int)(((float) cntLt/(float) cntTotal)*100.0);
 			LogTime.PrtSpMsg(2, "SNPs distance< " + span +": "  + cntLt + "(" + p + "%)");
-			if (true) return;
-			
-			System.out.print("      Finishing...                                                  \r");
-			for (int i=0; i<cntSNP; i++) {
-				if (!diffList[i].equals(";")) {
-					String fun = diffList[i].substring(1, diffList[i].length()-1);
-					mDB.executeUpdate("UPDATE SNP " +
-						" SET dist='" + fun +  "' Where SNPid=" + i);
-				}
-			}
-			
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "add SNP distance");}
-	}
-	private String doK(int num) {
-		if (num>999999) return String.format("%3.1fM", ((float) num/1000000.0));
-		else if (num>999) return String.format("%3.1fk", ((float) num/1000.00));
-		else return num+"";
 	}
 	DBConn mDB=null;
 	MetaData meta=null;

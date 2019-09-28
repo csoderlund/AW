@@ -7,6 +7,7 @@ package build.file;
 import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -83,7 +84,7 @@ public class Genes {
 				String [] tok = line.split("\t");
 				if (tok.length==0) continue;
 				if (tok.length<namesCol) {
-					System.err.println("Ignore: " + line);		
+					LogTime.warn("Ignore: " + line);		
 					continue;
 				}
 				cntRead++;
@@ -142,7 +143,7 @@ public class Genes {
 					
 					if (transNameExists.contains(transName)) {
 						if (dupTransName==null)
-							System.out.println("Duplicate transName " + transName + " ignoring");
+							LogTime.warn("Duplicate transName " + transName + " ignoring");
 						dupTransName = transName;
 						continue;
 					}
@@ -170,14 +171,14 @@ public class Genes {
 				}
 				
 				if (cntRead % 10000 == 0) 
-					System.out.print("   Read " + cntRead + "; Genes " + addGene + 
-							"; dup gene " + cntDup + "; Trans " + addTrans + "\r");
+					LogTime.r("   Read " + cntRead + "; Genes " + addGene + 
+							"; dup gene " + cntDup + "; Trans " + addTrans );
 			}	
 			addGeneToDB();
 			reader.close();
-			LogTime.PrtSpMsg(1, "Read: " + cntRead + " Genes: " + addGene + " Trans: " + addTrans + "                 ");
-			LogTime.PrtSpMsg(1, "Dup gene: " + cntDup + " Pos strand: " + cntPos + " Neg strand: " + cntNeg);
-			if (cntErr>0) LogTime.PrtSpMsg(1, "Errors on length: " + cntErr);
+			LogTime.PrtSpMsg(2, "Read: " + cntRead + " Genes: " + addGene + " Trans: " + addTrans + "                 ");
+			LogTime.PrtSpMsg(2, "Dup gene: " + cntDup + " Pos strand: " + cntPos + " Neg strand: " + cntNeg);
+			if (cntErr>0) LogTime.PrtSpMsg(2, "Errors on length: " + cntErr);
 			if (addGene==0 && addTrans==0) ErrorReport.die("No genes or transcripts added");
 			
 			int xx = (hasNames) ? 1 : 0;
@@ -191,7 +192,7 @@ public class Genes {
 	private void addGeneToDB() {
 		curGene.finish();
 		int GENEid = addGene();
-		for (Trans tr : curGene.trans) addTrans(tr, GENEid);
+		addTrans(GENEid);
 	}
 	private int addGene() {
 		try {
@@ -211,7 +212,6 @@ public class Genes {
 			}
 			geneNameList.add(low);
 			IdNameMap.put(curGene.id, name);
-			int len =  (curGene.end > curGene.start) ? (curGene.end-curGene.start+1) : (curGene.start-curGene.end+1); 
 			
 			mDB.executeUpdate("INSERT gene SET " +		
 					" geneName=" 	+ quote(name) +  
@@ -228,57 +228,63 @@ public class Genes {
 			ResultSet rs = mDB.executeQuery("select last_insert_id() as pid");  
 	        if (rs.next()) GENEid = rs.getInt("pid");
 	        else ErrorReport.die("Cannot get last_insert_id in GENEs");	
+	        rs.close();
+	        
 	        addGene++;
 	        return GENEid;
 		}
 		catch (Exception e) {ErrorReport.die(e, "insert gene " + curGene.id);}
 		return 0;
 	}
-	private void addTrans(Trans tr, int GENEid) {
+	private void addTrans(int GENEid) {
+		String trName="";
+		
 		try { // compute UTR in genTrans because introns may be spliced in non-coding exons
-			mDB.executeUpdate("INSERT trans SET " +
-					" geneid="	+ GENEid +
-					",transName=" 	+ quote(tr.name) + 
-					",transIden="	+ quote(tr.id) + 
-					",chr=" 		+ quote(curGene.chr) + 
-					",start=" 	+ tr.start + 
-					",end=" 		+ tr.end + 
-					",startCodon=" + tr.startCodon + 
-					",endCodon="	+ tr.endCodon + 
-					",strand="	+ quote(curGene.strand) +  
-					",cntExon="	+ tr.exonList.size() 
-					);
+			PreparedStatement ps0 = mDB.prepareStatement("INSERT trans SET " +
+				" geneid="	+ GENEid + ", chr='" + curGene.chr + "',strand='" + curGene.strand + "'" +
+				",transName=?, transIden=?, start=?, end=?, startCodon=?, endCodon=?, cntExon=?");
+				
+			// mDB.openTransaction(); screws up insert on mariaDB, even with two loops
+			for (Trans tr : curGene.trans) {
+				trName = tr.name;
+				ps0.setString(1, tr.name);
+				ps0.setString(2, tr.id);
+				ps0.setInt(3, tr.start);
+				ps0.setInt(4, tr.end);
+				ps0.setInt(5, tr.startCodon);
+				ps0.setInt(6, tr.endCodon);
+				ps0.setInt(7, tr.exonList.size());
+				ps0.executeUpdate();
+				
+				ResultSet rs = mDB.executeQuery("select last_insert_id() as pid");  
+		        if (rs.next()) tr.sqlID = rs.getInt("pid");
+		        else ErrorReport.die("Cannot get last_insert_id in GENEs");
+		        rs.close();
+				addTrans++;
 			
-			int TRANSid=0;
-			ResultSet rs = mDB.executeQuery("select last_insert_id() as pid");  
-	        if (rs.next()) TRANSid = rs.getInt("pid");
-	        else ErrorReport.die("Cannot get last_insert_id in GENEs");		
-			addTrans++;
-			
-			tr.finishExons();
-			StringBuilder sb = new StringBuilder();
-			sb.ensureCapacity(1000);
-			sb.append("INSERT INTO transExon (TRANSid, transName, cStart, cEnd, frame, intron, nExon,  chr) VALUES");
-			boolean first=true;
-			for (Exon ex : tr.exonList) {
-				if (!first) sb.append(",");
-				first = false;
-				sb.append("("); 
-				sb.append(TRANSid);		sb.append(",");
-				sb.append(quote(tr.name)); sb.append(",");
-				sb.append(ex.start);	sb.append(","); 
-				sb.append(ex.end);	sb.append(","); 
-				sb.append(ex.frame);	sb.append(","); 
-				sb.append(ex.intron); sb.append(",");
-				sb.append(ex.num);	sb.append(","); // CAS 12/29/14 using gtf num instead of count
-				sb.append(quote(curGene.chr)); 
-				sb.append(")");
-			}	
-			mDB.executeUpdate(sb.toString());
+				tr.finishExons();
+				StringBuilder sb = new StringBuilder();
+				sb.ensureCapacity(1000);
+				sb.append("INSERT INTO transExon (TRANSid, transName, cStart, cEnd, frame, intron, nExon,  chr) VALUES");
+				boolean first=true;
+				for (Exon ex : tr.exonList) {
+					if (!first) sb.append(",");
+					first = false;
+					sb.append("("); 
+					sb.append(tr.sqlID);			sb.append(",");
+					sb.append(quote(tr.name)); 	sb.append(",");
+					sb.append(ex.start);			sb.append(","); 
+					sb.append(ex.end);			sb.append(","); 
+					sb.append(ex.frame);			sb.append(","); 
+					sb.append(ex.intron); 		sb.append(",");
+					sb.append(ex.num);			sb.append(","); 
+					sb.append(quote(curGene.chr)); 
+					sb.append(")");
+				}	
+				mDB.executeUpdate(sb.toString());
+			}
 		}
-		catch (Exception e) {
-			ErrorReport.die(e, "insert trans " + tr.name);
-		}
+		catch (Exception e) {ErrorReport.die(e, "insert trans " + trName);}
 	}
 	/***********************************************
 	 * Ensembl has many types, e.g. protein coding, pseudogenes, etc. Only want protein coding
@@ -286,7 +292,6 @@ public class Genes {
 	 */
 	private void setType() {
 		try {	
-			
 			Matcher m;
 			BufferedReader reader = new BufferedReader ( new FileReader ( GTFFile ) ); 
 			String line="";
@@ -309,17 +314,18 @@ public class Genes {
 				if ((isEnsembl || cnt>10000) && !chrRoot.equals("")) break;
 			}
 			reader.close();
-			if (isEnsembl) LogTime.PrtSpMsg(2, "GTF file is probably from Ensembl");
-			else LogTime.PrtSpMsg(2, "GTF file is from unknown source");
-			if (!chrRoot.equals(""))  LogTime.PrtSpMsg(2, "Seqname root is '" + chrRoot + "'");
-			else LogTime.PrtWarn("Could not find a root (e.g. chr) for the column");
+			if (isEnsembl) LogTime.PrtSpMsg(1, "GTF file is probably from Ensembl");
+			else           LogTime.PrtSpMsg(1, "GTF file is from unknown source");
+			if (!chrRoot.equals(""))  
+				           LogTime.PrtSpMsg(1, "Seqname prefix is '" + chrRoot + "'");
+			else           LogTime.PrtWarn("Could not find a root (e.g. chr) for the column");
 		}
 		catch (Exception e) {ErrorReport.die("Reading " + GTFFile);}
 	}
 	private String check(String t, String n) {
 		if (n.length() >Globals.nameLen) {
 			cntErr++;
-			if (cntErr<10) LogTime.PrtError(t + " name over " + Globals.nameLen + " chars: " + n + "  truncating...");
+			if (cntErr<10)       LogTime.PrtError(t + " name over " + Globals.nameLen + " chars: " + n + "  truncating...");
 			else if (cntErr==10) LogTime.PrtError("Surpressing errors on length");
 			return n.substring(0,Globals.nameLen);
 		}
@@ -385,6 +391,7 @@ public class Genes {
 		int start=0, end=0, startCodon=0, endCodon=0;
 		boolean isPos;
 		ArrayList<Exon> exonList = new ArrayList<Exon> ();
+		int sqlID=0;
 	
 		public Trans(String n, String i, boolean ip) {
 			name = check("transName",n);

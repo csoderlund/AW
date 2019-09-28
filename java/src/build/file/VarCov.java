@@ -17,26 +17,23 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.TreeMap;
 import java.util.Vector;
 
 import util.ErrorReport;
 import util.LogTime;
 import util.Globals;
-import build.Bmain;
 import build.Cfg;
 import database.DBConn;
 import database.Dynamic;
 import database.MetaData;
 import build.compute.Compute;
-import build.compute.Overview;
 
 public class VarCov {
 	private Vector <String> varCovVec;
 	private String varCovDir;
 	private String chrRoot;
 	private Vector <String> chrVec;
-	private int numReps=4; // needs to be computed somewhere
+	private int numReps=Globals.MAX_REPS; // CASQ 7Sept19 4->10 
 	
 	public VarCov(DBConn dbc, Cfg c, int only) {
 		mDB = dbc; cfg = c;
@@ -98,15 +95,20 @@ public class VarCov {
 	private void addVarCov() {		
 		try {
 			long time=LogTime.getTime();
-			LogTime.PrtSpMsg(1, "Add heterozygous SNP counts");
+			LogTime.PrtSpMsg(1, "Add heterozygous SNP counts per library");
 		
-			int totalCnt=0, cntFile=0, addBatch=0, notFound=0;
+			int totalCnt=0, cntFile=0;
 			PreparedStatement ps = mDB.prepareStatement(
 					"INSERT SNPlib SET " +
 					"LIBid=?, libName=?, SNPid=?, repNum=?, refCount=?, altCount=?");
+			
 			HashMap <String, Integer> cntReps = new HashMap <String, Integer> ();
 			
 			for (String bedFile : varCovVec) {
+				LogTime.PrtSpMsg(1, "Load " + bedFile);
+				
+				int fileAdd=0, addBatch=0, cntSkipped=0, cntZero=0, cntRead=0;
+				
 				String [] x = bedFile.split(":");
 				String file = x[0];
 				libName = x[1];
@@ -114,17 +116,16 @@ public class VarCov {
 				else  cntReps.put(libName, 1);
 				
 				String repStr = x[2];
-				int repNum = Integer.parseInt(repStr);
+				int repNum = Integer.parseInt(repStr); // the repNum comes from the file name
 				cntFile++;
 					
 				if (!libMap.containsKey(libName)) { // shouldn't 
-					System.out.println("No library - ignore: " + file);
+					LogTime.warn("No library - ignore: " + file);
 					continue;
 				}		
 				int LIBid = libMap.get(libName);
 				mDB.executeUpdate("UPDATE library SET reps=reps+1 where LIBid=" + LIBid);
 				
-				int cntRead=0;
 				String line="";
 				String path = varCovDir + "/" + file;
 				BufferedReader reader = new BufferedReader ( new FileReader (path ) ); 	
@@ -144,7 +145,8 @@ public class VarCov {
 					int pos = Integer.parseInt(tok[1])+1; // for bed files, which use zero offset
 					loc = chr + ":" +  pos;	
 					if (!snpMap.containsKey(loc)) {
-						notFound++;
+						if (cntSkipped<3) LogTime.warn("Skipped - " + loc);
+						cntSkipped++;
 						continue;
 					}
 					int SNPid = snpMap.get(loc);
@@ -155,7 +157,7 @@ public class VarCov {
 						alt = Integer.parseInt(items[1]);
 					}
 					catch (Exception e) {
-						LogTime.PrtSpMsg(3, "bad ref:alt in file=" + file + " line=" + line);
+						LogTime.warn("Bad ref:alt in file=" + file + " line=" + line);
 						continue;
 					}
 					if (ref > 0 || alt > 0) {
@@ -166,22 +168,32 @@ public class VarCov {
 						ps.setInt(5, ref);
 						ps.setInt(6, alt);
 						ps.addBatch();
-						addBatch++; totalCnt++;
+						addBatch++; totalCnt++; fileAdd++;
 					}
-					if (addBatch > 1000) {
+					else cntZero++;
+					
+					if (addBatch == 100) {
 						addBatch=0;
 						ps.executeBatch();
-						System.out.print("      File#" + cntFile + " Read:" + cntRead + " Add:" + totalCnt + "\r");
+						LogTime.r("File#" + cntFile + "  Read:" + cntRead + "  Add:" + fileAdd + "  Skipped:" + cntSkipped);
 					}
-				}	
+				} // Loop through read file
 				if (addBatch > 0) ps.executeBatch();
+				LogTime.PrtSpMsg(2, "Read:" + cntRead + "  Add:" + fileAdd + "  Skipped:" + cntSkipped + " Zero alt:ref: " + cntZero);
+			} // loop through files
+			
+			int max=0;
+			for (int n : cntReps.values()) {
+				if (n>numReps) LogTime.die("The number of replicates is limited to " + numReps);
+				if (n>max) max=n;
 			}
-			for (int val : cntReps.values()) if (val>numReps) val = numReps;
 					
 			LogTime.PrtSpMsgTime(2, 
-					"Add: " + totalCnt + "  Skipped: " + notFound + " Max Reps: " + numReps, time);
+				"Add total variants: " + totalCnt +  "  (Max Reps: " + max + ")", time);
+			
 			if (cntChrErr>0 || cntChrErr2>0)
-				LogTime.PrtSpMsg(3, "  Error with chromosomes: " + (cntChrErr+cntChrErr2));
+				LogTime.PrtSpMsg(3, "Error with chromosomes: " + (cntChrErr+cntChrErr2));
+			
 			if (totalCnt==0) ErrorReport.die("Did not add any variant coverage counts");
 		}
 		catch (Exception e){ErrorReport.die(e, "Adding variant coverage");}
@@ -238,11 +250,13 @@ public class VarCov {
 				int o = (s.equals("+")) ? 0 : 1;
 				transMap.put(id, o);
 			}
+			rs.close();
+			
 			int cnt=0, cntEx=0, cntTot=0;
 			for (int TRANSid : transMap.keySet()) {
 				cnt++;
 				if (cnt%1000==0) 
-					System.out.print("      processed " + cnt + "\r");
+					LogTime.r("processed " + cnt);
 				String order = (transMap.get(TRANSid)==1) ? "DESC" : "";
 			
 				int cntTrSNP = mDB.executeCount("Select count(*) from SNPtrans where TRANSid=" + TRANSid);
@@ -258,6 +272,8 @@ public class VarCov {
 					distList[s] = rs.getInt(2);
 					s++;
 				}
+				rs.close();
+				
 				if (useCnts) { // Will, this is so you can add the counts back in
 					int [] cntList = new int [cntTrSNP];
 					for (int i=0; i<cntTrSNP; i++) {
@@ -291,17 +307,14 @@ public class VarCov {
 			int p = (int)(((float) cntEx/(float) cntTot)*100.0);
 			LogTime.PrtSpMsg(2, "Excluded SNP/trans pairs for summing of counts " + cntEx + "(" + p + "%)");
 		}
-		catch (Exception e)
-		{
-			ErrorReport.die(e, "doing SNP decluster");	
-		}		
+		catch (Exception e){ErrorReport.die(e, "doing SNP decluster");	}		
 	}
 	
 	/****************************************************************
 	 * Add rep 0 with summed ref/alt from reps
 	 */
 	private void sumSNPlib() {
-		LogTime.PrtSpMsg(1, "Sum ref/alt SNP coverage from replicas for " 
+		LogTime.PrtSpMsg(1, "Sum ref/alt SNP coverage from replicates for " 
 				+ libMap.size() + " libraries and " + snpMap.size() + " SNPs");
 		long time = LogTime.getTime();
 			
@@ -345,14 +358,13 @@ public class VarCov {
 						if (sum>=Globals.MIN_READS) cov20[SNPid]++;
 						covCnt[SNPid]+= sum;
 					}
-					if (addBatch > 1000) {
+					if (addBatch == 1000) {
 						addBatch=0;
 						ps.executeBatch();
-						System.out.print("  " + nlib + ". " + libName + " SNP#" + nsnp + "\r");
+						LogTime.r(nlib + ". " + libName + " SNP#" + nsnp);
 					}	
 				} 
 			} 
-			System.out.print("                                                                     \r");
 			if (addBatch > 0) ps.executeBatch();
 			// used in sumTransLib - so must be done here.
 			for (int i=0; i<nSNP; i++) {
@@ -360,14 +372,13 @@ public class VarCov {
 					mDB.executeUpdate("Update SNP set cntLibCov=" + cov20[i] + ",cntCov=" + covCnt[i] + 
 						" where SNPid=" + i);
 			}
-			LogTime.PrtSpMsgTime(2, "Finish updating SNP Lib; insert " + cntInsert, time);	
+			LogTime.PrtSpMsgTime(2, "Finish updating SNP Lib - add: " + cntInsert, time);	
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing SNPlib sums");}
 	}
 	
-
 	/***************************************************************
-	 * create geneLib table, summing SNP ref/alt for all libs for all replicas (including 0)
+	 * create geneLib table, summing SNP ref/alt for all libs for all replicates (including 0)
 	 */
 	private void sumGeneLib() {
 		LogTime.PrtSpMsg(1, "Sum ref/alt for gene coverage");
@@ -391,14 +402,21 @@ public class VarCov {
 			while (rs.next()) {
 				gene[rs.getInt(2)] +=  rs.getInt(1) + ":";
 			}
-			int cntInsert=0, cnt=0;
+			rs.close();
+			
+			int cntTotal=0, cnt=0;
 			for (int i=0; i<=numGenes; i++) if (!gene[i].equals("")) cnt++;
 			LogTime.PrtSpMsg(2, "Read " + numGenes + " genes of which " + cnt + " have variants");
 	
+			PreparedStatement ps0 = mDB.prepareStatement("INSERT geneLib SET " +
+					" GENEid=? ,geneName=?,LIBid=?,libName=?,repNum=?" +
+					",cntSNPCov=? ,refCount=?,altCount=?");
+			
 			for (int GENEid=1; GENEid<=numGenes; GENEid++) {
 				if (gene[GENEid].equals("")) continue;	
 				String [] SNPids = gene[GENEid].split(":");
-			
+				int cntAdd=0;
+				
 				for (String libName : libMap.keySet()) {
 					int LIBid = libMap.get(libName);
 					int [] refCount = new int [numReps+1];
@@ -416,6 +434,7 @@ public class VarCov {
 							refCount[r] += rs.getInt(2);
 							altCount[r] += rs.getInt(3);
 						}
+						rs.close();
 					}
 	
 					// add ref:alt counts for all Libs/Reps for this Gene 
@@ -430,33 +449,35 @@ public class VarCov {
 									" and SNPgene.GENEid=" + GENEid +
 									" and LIBid=" + LIBid);
 						}
-						mDB.executeUpdate("INSERT geneLib SET " +
-							" GENEid=" 		+ GENEid + 
-							",geneName= " 	+ quote(geneMap.get(GENEid)) +
-							",LIBid="  		+ LIBid + 
-							",libName= " 		+ quote(libName) + 
-							",repNum=" 		+ r + 
-							",cntSNPCov=" 	+ sCov +
-							",refCount=" 		+ refCount[r] + 
-							",altCount=" 		+ altCount[r] 
-							);
-						cntInsert++;
-					}	
-		
-				} // lib loop
+						ps0.setInt(1, GENEid);
+						ps0.setString(2, geneMap.get(GENEid));
+						ps0.setInt(3, LIBid);
+						ps0.setString(4, libName);
+						ps0.setInt(5, r);
+						ps0.setInt(6, sCov);
+						ps0.setInt(7, refCount[r]);
+						ps0.setInt(8, altCount[r]);
+						ps0.addBatch();
+						cntTotal++; cntAdd++;
+						
+						if (cntAdd==1000) {
+							ps0.executeBatch();
+							cntAdd=0;
+							LogTime.r("Gene# " + GENEid + " add " + cntTotal);	
+						}
+					}
+				} // gene lib loop
+				if (cntAdd>0) ps0.executeBatch();
+				
 				// Number of SNP with >=20 for any library
 				int cntCov20 = mDB.executeCount("select count(*) from SNP " +
 						" join SNPgene on SNP.SNPid=SNPgene.SNPid" +
 						" where SNP.cntLibCov>0 and SNPgene.GENEid=" + GENEid);
 				if (cntCov20>0) 
 					mDB.executeUpdate("Update gene set cntSNPCov=" + 
-							cntCov20 + " where GENEid=" + GENEid);
-				
-				if ((cntInsert % 1000) == 0)
-					System.err.print("      Gene# " + GENEid + " add " + cntInsert + "...\r");		
+							cntCov20 + " where GENEid=" + GENEid);	
 			} // gene loop
-			System.out.print("                                                                 \r");
-			LogTime.PrtSpMsgTime(2, "Finish gene Lib add " + cntInsert, time);
+			LogTime.PrtSpMsgTime(2, "Finish Gene Lib - add: " + cntTotal, time);
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing sums for geneLib");}
 	}
@@ -484,13 +505,22 @@ public class VarCov {
 			while (rs.next()) {
 				transIn[rs.getInt(2)] +=  rs.getInt(1) + ":";
 			}
+			rs.close();
 			
 			int cntInsert=0, cnt=0;
 			for (int i=0; i<=numTrans; i++) if (!transIn[i].equals("")) cnt++;
 			LogTime.PrtSpMsg(2, "Read " + numTrans + " trans of which " + cnt + " have variants");
 			
+			PreparedStatement ps0 = mDB.prepareStatement("INSERT transLib SET " +
+					" TRANSid=?,transName= ?,LIBid=?,libName=? ,repNum=?," +
+					" cntSNPCov=?,refCount=?,altCount=?" );
+			
+			PreparedStatement ps1 = mDB.prepareStatement("update transLib SET "  +
+					" refCount=?,altCount=? where TRANSid=? and LIBid=? and repNum=?");
+			
 			for (int TRANSid=1; TRANSid<=numTrans; TRANSid++) {
 				if (transIn[TRANSid].equals("")) continue;
+				int cntAdd0=0, cntAdd1=0;
 				
 				String [] tranSNPs = transIn[TRANSid].split(":");
 				for (String libName : libMap.keySet()) {
@@ -517,10 +547,17 @@ public class VarCov {
 						if (refCount[r]==0 && altCount[r]==0) continue;
 						cntInsert++;
 						if (update) {
-							mDB.executeUpdate("update transLib SET "  +
-								" refCount=" + refCount[r] +",altCount=" + altCount[r] +
-								" where TRANSid=" + TRANSid + " and LIBid=" + LIBid + " and repNum=" + r
-								);
+							ps1.setInt(1, refCount[r]);
+							ps1.setInt(2, altCount[r]);
+							ps1.setInt(3, TRANSid);
+							ps1.setInt(4, LIBid);
+							ps1.setInt(5, r);
+							ps1.addBatch();
+							cntAdd1++;
+							if (cntAdd1==1000) {
+								ps1.executeBatch();
+								cntAdd1=0;
+							}
 							continue;
 						}
 					
@@ -532,18 +569,25 @@ public class VarCov {
 									" and SNPtrans.TRANSid=" + TRANSid +
 									" and LIBid=" + LIBid);
 						}
-						mDB.executeUpdate("INSERT transLib SET " +
-								" TRANSid=" + TRANSid +
-								",transName= " 	+ quote(transMap.get(TRANSid)) + 
-								",LIBid="  + LIBid + 
-								",libName= " 		+ quote(libName) + 
-								",repNum=" + r + 
-								",cntSNPCov=" + sCov +
-								",refCount=" + refCount[r] + 
-								",altCount=" + altCount[r]);
-				
+						ps0.setInt(1, TRANSid);
+						ps0.setString(2, transMap.get(TRANSid));
+						ps0.setInt(3, LIBid);
+						ps0.setString(4, libName);
+						ps0.setInt(5, r);
+						ps0.setInt(6, sCov);
+						ps0.setInt(7, refCount[r]);
+						ps0.setInt(8, altCount[r]);
+						ps0.addBatch();
+						cntAdd0++;
+						if (cntAdd0==1000) {
+							ps0.executeBatch();
+							cntAdd0=0;
+						}
 					}
-				} // end lib loop
+				} // end trans lib loop
+				if (cntAdd0>0) ps0.executeBatch();
+				if (cntAdd1>0) ps1.executeBatch();
+				
 				// Number of SNP with >=20 for any library, where cntLibCov is the number over 20 per SNP
 				int cntCov20 = mDB.executeCount("select count(*) from SNP " +
 								" join SNPtrans on SNP.SNPid=SNPtrans.SNPid" +
@@ -553,10 +597,9 @@ public class VarCov {
 							cntCov20 + " where transid=" + TRANSid);
 				
 				if ((cntInsert % 1000) == 0)
-					System.err.print("      Trans# " + TRANSid + " add " + cntInsert + "...\r");		
+					LogTime.r("Trans# " + TRANSid + " add " + cntInsert);		
 			} // trans loop
-			System.out.print("                                                                 \r");
-			LogTime.PrtSpMsgTime(2, "Finish trans Lib add " + cntInsert, time);
+			LogTime.PrtSpMsgTime(2, "Finish Trans Lib - add: " + cntInsert, time);
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing sums for transLib");}
 	}
@@ -572,16 +615,19 @@ public class VarCov {
 			while (rs.next()) {
 				libMap.put(rs.getString(2), rs.getInt(1));
 			}	
+			rs.close();
+			
 			rs = mDB.executeQuery("Select SNPid, chr, pos from SNP");
-			while (rs.next()) {
+			while (rs.next()) { 
 				snpMap.put(rs.getString(2).toLowerCase() + ":" + rs.getString(3), rs.getInt(1));
 			}
 			rs.close();		
+			if (snpMap.size()==0)
+				LogTime.die("No variants in database");
 		}
 		catch (Exception e) {ErrorReport.die(e, "reading DB ");}		
 	}
 	
-	private String quote(String word) {return "'" + word + "'";}
 	private DBConn mDB=null;
 	private Cfg cfg=null;
 	private String libName="";

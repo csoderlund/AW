@@ -131,7 +131,7 @@ public class LibListTable extends JPanel {
     		row1.add(new JLabel("Show selected: "));
       	row1.add(Box.createHorizontalStrut(5));   	
         
-        btnShowReplicas = CreateJ.buttonFun("Replicas");
+        btnShowReplicas = CreateJ.buttonFun("Replicates");
         btnShowReplicas.setEnabled(false);
         btnShowReplicas.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -161,9 +161,9 @@ public class LibListTable extends JPanel {
 						altCnt+=c;
 					}
 					if (refCnt==0 && altCnt==0) {
-						ViewTextPane.displayInfo("Replicas", 
+						ViewTextPane.displayInfo("Replicates", 
 								"No SNP coverage for this " + colName + 
-								"\nso no expression replicas values in database", true);
+								"\nso no expression replicates values in database", true);
 						return;
 					}
 					
@@ -177,7 +177,7 @@ public class LibListTable extends JPanel {
 							newPanel.getSummary());
 					
 				} catch(Exception e) {
-					ErrorReport.prtError(e, "Error showing Replicas");
+					ErrorReport.prtError(e, "Error showing Replicates");
 				} catch(Error e) {
 					ErrorReport.reportFatalError(e);
 				}

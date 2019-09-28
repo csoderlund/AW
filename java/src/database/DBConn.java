@@ -21,7 +21,7 @@ public class DBConn
 	String mPass;
 	Connection mConn = null;
 	Statement mStmt = null;
-	boolean autoCommit = false;
+	boolean autoCommit = true;
 
 	public DBConn(String dbstr, String user, String pass) throws Exception
 	{
@@ -284,5 +284,14 @@ public class DBConn
 	{
 		mConn.commit();
 	}
+	// CASQ 6Sept19 for mariaDB
+	public void openTransaction() throws Exception
+	{
+		executeQuery("BEGIN");
+	}
+	public void closeTransaction() throws Exception
+	{
+		executeQuery("COMMIT");
+	}	
 }
 

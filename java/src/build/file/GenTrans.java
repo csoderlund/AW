@@ -75,13 +75,13 @@ public class GenTrans {
 		if (TEST || TESTCMP || TESTEFFECT) 
 			System.out.println("TEST=" + TEST + " CMP=" + TESTCMP + " EFFECT=" + TESTEFFECT);
 		
+		LogTime.rClear();
 		if (cfg.isEVP() || cfg.isSnpEFF()) {
 			hasEffect=true;
 			if (cfg.isEVP()) hasCDSpos=true;
-			else LogTime.PrtSpMsg(2, "Compute cDNApos (effects loaded from file)");
+			else LogTime.PrtSpMsg(1, "Compute cDNApos (effects loaded from file)");
 		}
-		else LogTime.PrtSpMsg(2, "Compute cDNApos and effects");
-		
+		else LogTime.PrtSpMsg(1, "Compute cDNApos and effects");
 		
 		if (TESTEFFECT) hasEffect=false;
 	
@@ -121,7 +121,7 @@ public class GenTrans {
 				String chr = getChr(file, chrNums);
 				if (chr==null || (TEST && chr.equals("X"))) continue;
 				cnt++;
-				System.out.print(cnt + ". Processing chr" + chr + "                   \r");
+				LogTime.detail(cnt + ". Processing chr" + chr);
 				
 				readDB(chr);
 	
@@ -148,8 +148,8 @@ public class GenTrans {
 						" (Wrong start: " + cntWrongStart + ")  No translation: " + cntNoFrame);
 				if (checkReverse)LogTime.PrtSpMsg(1," Reversed: " + cntReverse);
 			}
-			LogTime.PrtSpMsg(1, "No start_codon: " + cntNoATG + " no end_codon: " + cntNoStop);
-			LogTime.PrtSpMsg(1,  "Add exon remarks: " + cntAddExonRmk + " Write aaRef: " + cntWriteAA);
+			LogTime.PrtSpMsg(2, "No start_codon: " + cntNoATG +        "   No end_codon: " + cntNoStop);
+			LogTime.PrtSpMsg(2, "Add exon remarks: " + cntAddExonRmk + "   Write aaRef: " + cntWriteAA);
 			if (!hasEffect) LogTime.PrtSpMsg(1, "Missense: " + cntMissense);
 			
 			ntRefFile.close(); ntAltFile.close(); ntCDSFile.close();
@@ -174,15 +174,15 @@ public class GenTrans {
 				if (root.endsWith(c.trim())) return c;
 		}
 		LogTime.PrtError("Ignore file " + file + " does not end with a chromosome number/letter from the database");
-		System.out.println(chr + " " + root);
+		LogTime.PrtSpMsg(1, chr + " " + root);
 		return null;
 	}
 	/*******************************************
 	 * Get coords from database 
 	 */
 	private void readDB(String chr) {
-		System.out.print("1 Reading database for coords " + chr +" \r");
-		ResultSet rs;
+		LogTime.detail("1 Reading database for coords " + chr);
+		ResultSet rs=null;
 		int cntTr=0, cntExon=0, cntVar=0;
 		try {
 			
@@ -194,14 +194,14 @@ public class GenTrans {
 			transList = new Trans [cntTrans];
 			
 			rs = mDB.executeQuery("Select TRANSid, transIden, strand, " +
-					" start, end, startCodon, endCodon, transName" +
-					" from trans " + where); 
-			
+					" start, end, startCodon, endCodon, transName from trans " + where); 
 			while (rs.next()) {
 				transList[cntTr] = new Trans (rs.getInt(1), rs.getString(2), rs.getString(3), 
 						rs.getInt(4), rs.getInt(5), rs.getInt(6), rs.getInt(7), rs.getString(8));
 				cntTr++;
 			}
+			rs.close();
+			
 		/** get exons and variants for each transcript **/	
 			for (Trans tr : transList) {
 				rs = mDB.executeQuery("Select cStart, cEnd, frame,  nExon from transExon " +
@@ -210,6 +210,8 @@ public class GenTrans {
 					tr.setExon(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4));
 					cntExon++;
 				}	
+				rs.close();
+				
 				tr.adjustCoords();
 				tr.findIgnoredExons();
 			
@@ -225,6 +227,7 @@ public class GenTrans {
 						rs.getString(2), rs.getInt(3), rs.getBoolean(9));
 					cntVar++;
 				}	
+				rs.close();
 			}	
 			Arrays.sort(transList);
 			if (TEST) LogTime.PrtSpMsg(3, "Trans: " + cntTr + "   Exons: " + cntExon + "   Variants: " + cntVar);
@@ -235,7 +238,7 @@ public class GenTrans {
 	 * read chromomome file and assign from ATG to STOP the entire transcript (non-spliced)
 	 */
 	 private void readChrFile(String fileName) {
-		System.out.print("2 Read genome chromosome file and create unspliced transcripts\r");
+		LogTime.detail("2 Read genome chromosome file and create unspliced transcripts");
 		File f = new File(fileName);
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(f));
@@ -273,9 +276,9 @@ public class GenTrans {
 					buffer.delete(0, buffer.length());
 				}	
 				if (cntLine %100000 ==0) 
-					System.err.print("      line=" + cntLine + " #trans=" + tIdx + " buf=" + buffer.length() + "               \r");
+					LogTime.r("line=" + cntLine + " #trans=" + tIdx + " buf=" + buffer.length());
 			}
-			System.out.print("                                                                 \r");
+			LogTime.rClear();
 			if (TEST) LogTime.PrtSpMsg(3, "Lines: " + cntLine + " Trans: " + tIdx + "              ");
 		}
 		catch (Exception e) {
@@ -285,9 +288,10 @@ public class GenTrans {
 	  * Create alt sequences by inserting SNPs and Indels and update Alt Exons
 	  * Alt exons need to be altered for splicing, i.e. a deletion could shift coords
 	  * Variants also need shifting in case the variant annotation computation is needed
+	  * FIXME: bug in this routine
 	  */
 	 private void createAltSeq() {
-		System.out.print("3 Create alt transcript seqs                              \r");
+		LogTime.detail("3 Create alt transcript seqs                             ");
 		int cntReplace=0, cntIndel=0;
 		try {
 			for (Trans tr : transList) {
@@ -333,7 +337,7 @@ public class GenTrans {
 		catch (Exception e) {ErrorReport.die(e, "GenTrans: create Alt sequence"); }
 	}
 	
-	 // XXX NOTE: I haven't handled these cases and want to how ensembl handled
+	 // NOTE: I haven't handled these cases and want to how ensembl handled
 	 // could an exon be lost? probably
 	private boolean createAltSeqExonCheck(String name, int varID, int pos, int diff, int start, int end) {
 		 boolean rc=true;
@@ -358,7 +362,7 @@ public class GenTrans {
 	* - strand is not reverse complemented until after splicing because exon coords are for positive strand
 	 */
 	private void createSpliceTrans(boolean isRef, BufferedWriter bw) {
-		System.out.print("4 Create spliced transcripts and shift Variants isRef=" + isRef + "\r");
+		LogTime.detail("4 Create spliced transcripts and shift Variants isRef=" + isRef);
 		int cntAppend=0;
 		try {
 			for (int tIdx=0; tIdx<transList.length; tIdx++) {
@@ -395,9 +399,9 @@ public class GenTrans {
 				bw.write(tr.getInfo() + "\n" +  ss  + "\n");
 				coding.delete(0, coding.length());			
 				if (tIdx % 100 == 0) 
-					System.err.print("   spliced " + tIdx + "                                     \r");
+					LogTime.r("spliced " + tIdx);
 			}
-			System.out.print("                                                            \r");
+			LogTime.rClear();
 			bw.flush();
 			if (TEST) LogTime.PrtSpMsg(3, "Spliced: " + cntAppend);
 		}
@@ -425,7 +429,7 @@ public class GenTrans {
 				}
 			}
 		
-			if (isRef) { // TODO is > correct for end?
+			if (isRef) { // is > correct for end?
 				tr.updateRefEnd(tr.refEnd-intronLen);
 				if (tr.refStaCodon+shift >= eStart1) tr.updateRefStaCodon(tr.refStaCodon-intronLen);
 				if (tr.refEndCodon+shift > eStart1) tr.updateRefEndCodon(tr.refEndCodon-intronLen);
@@ -444,12 +448,21 @@ public class GenTrans {
 	 * compute AA seqs
 	 */
 	private void createAASeqs_2DB() {
-		System.out.print("5 Compute AA and enter into database\r");
-	
+		LogTime.rClear();
+		LogTime.detail("5 Compute AA and enter into database");
+		int cntSeqAdd=0, cntTransUp=0, cntAdd1=0, cntAdd2=0;
+		
 		try {
-			for (int t=0; t<transList.length; t++) {
+			PreparedStatement ps1 = mDB.prepareStatement(
+					"Insert into sequences set parent=?, seq=?, TRANSid=?");
+			
+			PreparedStatement ps2 = mDB.prepareStatement(
+				"UPDATE trans SET UTR5=?, UTR3=?, refProLen=?, altProLen=?,nProDiff=?," +
+					"ntLen=?,gtfRmk=? where TRANSid=?");
+			
+			for (int nTr=0; nTr<transList.length; nTr++) {
 				String stopMsg="";
-				Trans tr = transList[t];
+				Trans tr = transList[nTr];
 				int nRef=0, nAlt=0;
 				if (FULLRMK) {
 					if ((tr.refEndCodon-tr.refStaCodon) % 3 !=0) {
@@ -464,10 +477,17 @@ public class GenTrans {
 				if (aaSeq.contains("*")) stopMsg = "Ref";
 				nRef= aaSeq.length();
 				
-				mDB.executeUpdate("Insert into sequences set parent=0, seq='" + tr.refSplSeq + "'" +
-						", TRANSid=" + tr.transid);
-				mDB.executeUpdate("Insert into sequences set parent=1, seq='" + aaSeq + "'" +
-						", TRANSid=" + tr.transid);
+				ps1.setInt(1, 0);
+				ps1.setString(2, tr.refSplSeq);
+				ps1.setInt(3, tr.transid);
+				ps1.addBatch();
+				cntSeqAdd++; cntAdd1++;
+				
+				ps1.setInt(1, 1);
+				ps1.setString(2, aaSeq);
+				ps1.setInt(3, tr.transid);
+				ps1.addBatch();
+				cntSeqAdd++; cntAdd1++;
 				
 				if (tr.cntVar==0) {
 					aaAltFile.write(tr.getInfo() + "\n" + aaSeq + "\n");
@@ -478,10 +498,19 @@ public class GenTrans {
 					aaAltFile.write(tr.getInfo() + "\n" + aaSeq + "\n");
 					if (aaSeq.contains("*")) stopMsg += "Alt";
 					
-					mDB.executeUpdate("Insert into sequences set parent=2, seq='" + aaSeq + "'" +
-							", TRANSid=" + tr.transid);
+					ps1.setInt(1, 2);
+					ps1.setString(2, aaSeq);
+					ps1.setInt(3, tr.transid);
+					ps1.addBatch();
+					cntSeqAdd++; cntAdd1++;
+					
 					nAlt = aaSeq.length();
 				}
+				if (cntAdd1 >= 100) {
+					ps1.executeBatch();
+					cntAdd1=0;
+				}
+				
 				// add gtfRmk and exon remarks
 				if (!stopMsg.equals("")) {
 					stopMsg =  "BADAA " + stopMsg;
@@ -502,14 +531,28 @@ public class GenTrans {
 					if (tr.gtfRmk.equals("")) tr.gtfRmk=msg;
 					else tr.gtfRmk += DELIM2 + " " + msg;
 				}
-				mDB.executeUpdate("UPDATE trans SET UTR5=" + UTR5 + ", UTR3=" + UTR3 + 
-						", refProLen=" + nRef + ", altProLen=" + nAlt + ",nProDiff="+nDiff + 
-						",ntLen=" + tr.refSplSeq.length() + ",gtfRmk='" + tr.gtfRmk + "'" +
-						" where TRANSid=" + tr.transid);
+				ps2.setInt(1, UTR5);
+				ps2.setInt(2, UTR3);
+				ps2.setInt(3, nRef);
+				ps2.setInt(4, nAlt);
+				ps2.setInt(5, nDiff);
+				ps2.setInt(6, tr.refSplSeq.length());
+				ps2.setString(7, tr.gtfRmk);
+				ps2.setInt(8, tr.transid);
+				ps2.addBatch();
+				cntTransUp++; cntAdd2++;
+				if (cntAdd2 >= 100) {
+					ps2.executeBatch();
+					cntAdd2=0;
+				}
 				
-				if (t%100 == 0) System.out.print("         aaSeqs #" + t + "                                  \r");
+				if (nTr%100 == 0) LogTime.r("processed aaSeqs #" + nTr);
 			}
+			if (cntAdd1>0) ps1.executeBatch();
+			if (cntAdd2>0) ps2.executeBatch();
+			
 			aaRefFile.flush();
+			LogTime.PrtSpMsg(2, "Sequences added: " + cntSeqAdd + "   Update trans: " + cntTransUp);
 		}
 		catch (Exception e) {ErrorReport.die(e, "create AAseqs");}
 	}
@@ -536,6 +579,7 @@ public class GenTrans {
 				exonMsg[cnt]="";
 				cnt++;
 			}
+			rs.close();
 			
 			for (int i=0; i<cnt; i++) {
 				if (frame[i]==-1) {
@@ -740,7 +784,7 @@ public class GenTrans {
 			}
 			return comp.toString();
 		 }
-	/********************* XXX Compute Variant Annotation if no annotation exists *********************/
+	/********************* Compute Variant Annotation if no annotation exists *********************/
 	/** Based on snpEFF effects/functions **/
 	private final String [] VARTYPES = {"DONT KNOW", 
 			 "upstream_gene_variant", "5_prime_utr_variant", 
@@ -752,6 +796,7 @@ public class GenTrans {
 			 "frameshift_variant", 
 			 "inframe_deletion", "inframe_insertion"
 	};
+	// index into VARTYPES
 	private final int EMPTY=0, 
 			UP=1, UTR5=2, 
 			INTRON=3, 
@@ -766,7 +811,7 @@ public class GenTrans {
 	 * whether they fall into an exon.
 	 */
 	private void varEffects_2DB() {
-		System.out.print("6 Annotate variants and enter into database\r");
+		LogTime.detail("6 Annotate variants and enter into database");
 		
 		try {	
 			int cntSNP=0, cntOther=0, cntIndel=0;
@@ -807,7 +852,7 @@ public class GenTrans {
 			if (TEST) LogTime.PrtSpMsg(3, "SNP=" + cntSNP + " Indel=" + cntIndel + " Non-coding=" + cntOther);
 			if (TESTCMP) return;
 			
-			System.out.print("Update mySQL Variant tables                        \r");
+			LogTime.detail("Update mySQL Variant tables                      ");
 			PreparedStatement ps = mDB.prepareStatement("update SNP set effectList=? where snpid=?");
 			int batch2 = 0;
 			for (int snpid : snpAnno.keySet())
@@ -818,10 +863,11 @@ public class GenTrans {
 				batch2++;
 				if (batch2 % 1000 == 0) {
 					ps.executeBatch(); 
-					System.err.print("   Finalize variants " + batch2 + "                   \r");
+					LogTime.r("Finalize variants " + batch2);
 				}
 			}
 			if (batch2 > 0) ps.executeBatch();
+			LogTime.rClear();
 		}
 		catch (Exception e) {ErrorReport.die(e, "GenTrans: varAnnoToDB"); }
 	}
@@ -967,7 +1013,6 @@ public class GenTrans {
 			}
 			else {
 				effect = VARTYPES[SYN];
-				// TODO SYNSTOP & SYNSTART - not big deal though
 			}
 			cdsPos++; // genome sequence starts at 1, put 1 back on
 			double p = (double) cdsPos;
@@ -1020,25 +1065,25 @@ public class GenTrans {
 			
 			HashMap <String, Trans> transMap = new HashMap <String, Trans> ();
 			for (int t=0; t<transList.length; t++)  transMap.put(transList[t].ensID, transList[t]);
-			System.out.println("Transcripts: " + transMap.size());
+			LogTime.PrtSpMsg(0, "Transcripts: " + transMap.size());
 			
 			for (int i=0; i<2; i++) {
 				if (!doNt && i==0) continue;
 				if (!doAA && i==1) break;
 			
-				int cntfound=0, cntAlignP=0, cntAlignN=0, cntAll=0, cntMatchN=0, skip=0, cntOne=0;
+				int cntfound=0, cntAlignP=0, cntAlignN=0, cntAll=0,  skip=0, cntOne=0;
 				int cntNo=0;
 				String line, ensSeq="", name="";
 				BufferedReader in;
 				BufferedWriter out;
 				if (i==0) {
-					System.out.println("Compare nt");
+					LogTime.PrtSpMsg(2,"Compare nt");
 					if (doRsem)in = new BufferedReader(new FileReader(ntRsem));
 					else in = new BufferedReader(new FileReader(ntEns));
 					out = new BufferedWriter(new FileWriter(ntDiff+ "." + chr, false));
 				}
 				else {
-					System.out.println("Compare aa");
+					LogTime.PrtSpMsg(2,"Compare aa");
 					in = new BufferedReader(new FileReader(aaEns));
 					out = new BufferedWriter(new FileWriter(aaDiff+ "." + chr, false));
 				}
@@ -1086,7 +1131,6 @@ public class GenTrans {
 									cntOne++;
 									if (tr.gtfRmk.contains("No")) cntNo++;
 								}
-								else if (!tr.isPos) cntMatchN++;
 							}
 						} else skip++;
 					}
@@ -1102,19 +1146,19 @@ public class GenTrans {
 					}
 					ensSeq = "";
 					if (cntAll%20 == 0) 
-						System.out.print("Found " + cntfound + " skip " + skip + 
-					" align+ " + cntAlignP  + " align- " + cntAlignN  + "\r");				
+						LogTime.r("Found " + cntfound + " skip " + skip + 
+					" align+ " + cntAlignP  + " align- " + cntAlignN);				
 				}
-				System.out.print("Found " + cntfound + " perfect match " + skip + 
+				LogTime.PrtSpMsg(0, "Found " + cntfound + " perfect match " + skip + 
 						" one off " + cntOne + "("+ cntNo + ")" +
-						" bad+ " + cntAlignP  + " bad- " + cntAlignN  +  "\n\n");		
+						" bad+ " + cntAlignP  + " bad- " + cntAlignN  +  "\n");		
 				out.close(); in.close();
 			}
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "codon");}
 	}
 	/**********************************************************
-	 * XXX class for transcript and its exons
+	 * class for transcript and its exons
 	 */
 	 private class Trans implements Comparable<Trans>{
 		 
@@ -1160,7 +1204,7 @@ public class GenTrans {
 		 
 		 // executed after DB transcript coords are read, before reading genome and shifting to start=0
 		 public void adjustCoords() { 
-			 if (refStaCodon <=0) { //XXX
+			 if (refStaCodon <=0) { 
 				 refStaCodon=start; 
 				 gtfRmk = "No ATG";
 				 cntNoATG++;
@@ -1230,12 +1274,12 @@ public class GenTrans {
 				
 				 if (ex1.refSta >= ex0.refSta && ex1.refEnd <= ex0.refEnd) {
 					 ex1.ignore=true;
-					 if (ex0.ignore) System.out.println(ensID + " ignoreExon1 " + ex1.refSta + " " +
+					 if (ex0.ignore) LogTime.PrtSpMsg(3, ensID + " ignoreExon1 " + ex1.refSta + " " +
 							 ex1.refEnd + " " +ex0.refSta +" " + ex0.refEnd);
 				 }
 				 else if (ex0.refSta >= ex1.refSta && ex0.refEnd <= ex1.refEnd) {
 					 ex0.ignore=true;
-					 if (ex1.ignore) System.out.println(ensID + " ignoreExon2 " + ex1.refSta + " " +
+					 if (ex1.ignore) LogTime.PrtSpMsg(3, ensID + " ignoreExon2 " + ex1.refSta + " " +
 							 ex1.refEnd + " " +ex0.refSta +" " + ex0.refEnd);
 				 } 
 			 }
@@ -1304,7 +1348,6 @@ public class GenTrans {
 			 isSNP=isS;
 			 ref = r;
 			 alt = a;
-			 fun = f;
 			 nExon=n;
 			 isCoding = is;
 		 }
@@ -1314,9 +1357,9 @@ public class GenTrans {
 			 return rsID + " pos: " + pos + " transPos:" + refPos + " isSNP:" + isSNP + " nExon:" + nExon;
 		 }
 		 private boolean isSNP, isCoding;
-		 private String ref, alt, rsID, fun;
+		 private String ref, alt, rsID;
 		 
-		 private int ID,  type, nExon;
+		 private int ID,  nExon;
 		 private int pos, refPos,  altPos; 
 	 }
 	

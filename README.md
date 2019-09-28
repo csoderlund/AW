@@ -1,4 +1,4 @@
-**Download tar files and demo files:** www.agcol.arizona.edu/software/AW [from this site](https://github.com/csoderlund/AW/releases)
+**Download tar files and demo files:** www.agcol.arizona.edu/software/AW or from [from this site](https://github.com/csoderlund/AW/releases)
 
 **Documentation:** www.agcol.arizona.edu/software/AW
 

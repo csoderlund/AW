@@ -31,12 +31,13 @@ public class Genes {
 		
 		try {
 			long startTime = LogTime.getTime();
-			LogTime.PrtDateMsg("Load " + GTFFile);
+			LogTime.PrtDateMsg("Add genome annotation (genes/trans)");
+			LogTime.PrtSpMsg(1, "File " + GTFFile);
 			
 			setType();
 			readGTK();
 			
-			LogTime.PrtSpMsgTime(0, "Complete loading gene and transcript coordinates", startTime );
+			LogTime.PrtSpMsgTime(0, "Finish loading gene and transcript coordinates", startTime );
 		}
 		catch (Exception e) {
 			ErrorReport.die(e, "doing genes");
@@ -176,8 +177,8 @@ public class Genes {
 			}	
 			addGeneToDB();
 			reader.close();
-			LogTime.PrtSpMsg(2, "Read: " + cntRead + " Genes: " + addGene + " Trans: " + addTrans + "                 ");
-			LogTime.PrtSpMsg(2, "Dup gene: " + cntDup + " Pos strand: " + cntPos + " Neg strand: " + cntNeg);
+			LogTime.PrtSpMsg(2, "Read: " + cntRead + "   Genes: " + addGene + "   Trans: " + addTrans + "                 ");
+			LogTime.PrtSpMsg(2, "Dup gene: " + cntDup + "   Pos strand: " + cntPos + "   Neg strand: " + cntNeg);
 			if (cntErr>0) LogTime.PrtSpMsg(2, "Errors on length: " + cntErr);
 			if (addGene==0 && addTrans==0) ErrorReport.die("No genes or transcripts added");
 			
@@ -316,9 +317,11 @@ public class Genes {
 			reader.close();
 			if (isEnsembl) LogTime.PrtSpMsg(1, "GTF file is probably from Ensembl");
 			else           LogTime.PrtSpMsg(1, "GTF file is from unknown source");
-			if (!chrRoot.equals(""))  
+			/** CASZ 8Oct19 Already found and printed in CfgFileValidate
+			if (chrRoot.equals(""))  
 				           LogTime.PrtSpMsg(1, "Seqname prefix is '" + chrRoot + "'");
 			else           LogTime.PrtWarn("Could not find a root (e.g. chr) for the column");
+			**/
 		}
 		catch (Exception e) {ErrorReport.die("Reading " + GTFFile);}
 	}

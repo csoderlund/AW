@@ -83,7 +83,7 @@ public class Compute {
 			}
 			else if (task==4) addSNPDist(); // may be called from VarCov
 			
-			LogTime.PrtSpMsgTime(0,"Complete computations", time);
+			LogTime.PrtSpMsgTime(0,"Finish computations", time);
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "Compute error");}
 	}
@@ -138,10 +138,11 @@ public class Compute {
 					mDB.executeUpdate(ratSQL +  " WHERE " + IDCol + " =" + ID);
 				}
 			}	
+			String x = String.format("%-5s", table);
 			if (isRead) {
-				if (addCnt>0) LogTime.PrtSpMsg(2, "Added ref:alt " + addCnt + " read counts to " + table + "    ");
+				if (addCnt>0) LogTime.PrtSpMsg(2, "Read counts to " + x + ": " + addCnt);
 			}
-			else LogTime.PrtSpMsg(2, "Added ref:alt " + addCnt + " SNPs counts to " + table  + "     ");
+			else LogTime.PrtSpMsg(2, "SNPs counts to " + x  + ": " + addCnt);
 		}
 		catch (Exception e) {
 			ErrorReport.prtError(e, "Compute ratio error");
@@ -283,9 +284,9 @@ public class Compute {
 					cntAdd=0;
 				}
 			}
-			if (cntAdd>0) ps0.executeBatch();
+			if (cntAdd>0) ps1.executeBatch();
 			mDB.closeTransaction();
-			LogTime.PrtSpMsg(2, "Trans Missense SNPS: " + cntT +  " Damaging: " + cntS);
+			LogTime.PrtSpMsg(2, "Trans Missense SNPs: " + cntT +  "   Damaging: " + cntS);
 		}
 		catch (Exception e) {ErrorReport.die(e, "add Trans counts");}
 	}
@@ -454,7 +455,7 @@ public class Compute {
 				transMap.put(id, start);
 			}
 			rs.close();
-			LogTime.PrtSpMsg(2, "Trans with >0 variants " + transMap.size());
+			LogTime.PrtSpMsg(2, "Trans with >0 variants: " + transMap.size());
 			
 			int cnt=0;
 			for (int TRANSid : transMap.keySet()) {

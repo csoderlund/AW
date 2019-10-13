@@ -13,6 +13,7 @@ import java.util.HashMap;
 import database.DBConn;
 import util.ErrorReport;
 import util.Globals;
+import util.LogTime;
 
 public class MetaData {
 
@@ -200,4 +201,32 @@ public class MetaData {
 	HashMap <String, Integer> libMap = new HashMap <String, Integer> ();
 
 	DBConn mDB;
+	
+	/******************************************************
+	 * Used by ViewFrame, ConfigFrame and Overview to write to file
+	 * CASZ 10Oct19
+	 */
+	public static String getOverview(DBConn mdb) {
+		try {
+			ResultSet rs = mdb.executeQuery("SELECT overview, buildDate, chgDate, remark FROM metaData");
+			if (!rs.next()) {
+				LogTime.PrtError("viewAW cannot access overview");
+				return "cannot access overview";
+			}
+			String cDate = rs.getString(3);
+			int x = cDate.indexOf(" ");
+			if (x>0) cDate = cDate.substring(0, x);
+			
+			String overview = rs.getString(4) + 
+					"    Build: " +  rs.getDate(2) + "  Change: " + cDate;
+			overview += "\n" + rs.getString(1);
+		
+			return overview;
+		} catch (Exception e) {
+			ErrorReport.prtError(e, "Error loading overview");
+		} catch (Error e) {
+			ErrorReport.reportFatalError(e);
+		}
+		return "Error getting overview";
+	}
 }

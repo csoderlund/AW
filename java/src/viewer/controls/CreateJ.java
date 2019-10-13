@@ -3,9 +3,13 @@ package viewer.controls;
  * Various methods for display
  */
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.util.Vector;
 
@@ -31,6 +35,48 @@ public class CreateJ {
 	    retVal.setLayout(new BoxLayout(retVal, BoxLayout.PAGE_AXIS));
 	    return retVal;
 	}
+	
+	  //   centers the input window on the screen
+    static public void centerScreen( Window win ) 
+    {
+          Dimension dim = win.getToolkit().getScreenSize();
+          Rectangle abounds = win.getBounds();
+          win.setLocation((dim.width - abounds.width) / 2,
+              (dim.height - abounds.height) / 2);
+    }
+  
+    //   centers the input window relative to its parent
+    static public void centerParent ( Window win ) 
+    {
+          int x;
+          int y;
+        
+          Container myParent = win.getParent();
+          
+          // Center using the parent if it's visible, just use the
+          // screen otherwise
+          if ( myParent.getWidth() > 0 && myParent.getHeight() > 0 )
+          { 
+                Point topLeft = myParent.getLocationOnScreen();
+                Dimension parentSize = myParent.getSize();
+            
+                Dimension mySize = win.getSize();
+            
+                if (parentSize.width > mySize.width) 
+                    x = ((parentSize.width - mySize.width)/2) + topLeft.x;
+                else 
+                    x = topLeft.x;
+               
+                if (parentSize.height > mySize.height) 
+                    y = ((parentSize.height - mySize.height)/2) + topLeft.y;
+                else 
+                    y = topLeft.y;
+               
+                win.setLocation (x, y);
+          }
+          else
+                centerScreen ( win );
+    }  
 	/** Lines (rows) **/
 	static public JPanel panelLine() {
 	    JPanel retVal = new JPanel();         
@@ -39,7 +85,13 @@ public class CreateJ {
 	    retVal.setLayout(new BoxLayout(retVal, BoxLayout.LINE_AXIS)); 
 	    return retVal;
 	}
-	
+	static public JCheckBox createCheckBox(String label, boolean check, boolean enable) {
+		JCheckBox chkBox = new JCheckBox(label);
+		chkBox.setBackground(Color.white);
+		chkBox.setSelected(check);
+		chkBox.setEnabled(enable);
+		return chkBox;
+	}
 	static public JPanel panelLabelLine (String label) {
 		JPanel tempRow = CreateJ.panelLine();
 		JLabel l = new JLabel(label);

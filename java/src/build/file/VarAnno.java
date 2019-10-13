@@ -34,13 +34,15 @@ public class VarAnno {
 		varAnnoVec = cfg.getVarAnnoVec();
 		
 		if (varAnnoVec==null) {
-			LogTime.PrtSpMsg(1, "No Variant annotation file defined in cfg file -- skipping step");
+			LogTime.PrtSpMsg(0, "");
+			LogTime.PrtSpMsg(0, "No Variant effect file defined in cfg file -- skipping step");
 			return;
 		}
 		else if (!cfg.isEVP() && !cfg.isSnpEFF()) {
-			LogTime.PrtWarn("Could not identify the Variant annotation files  -- skipping step");
+			LogTime.PrtWarn("Could not identify the Variant effect files  -- skipping step");
 			return;
 		}
+		
 		try {
 			mDB.executeUpdate("update SNP set effectList=''");
 			if (cfg.isEVP()) 
@@ -51,16 +53,22 @@ public class VarAnno {
 		catch (Exception e) {ErrorReport.prtError(e, "VarAnno initializing");}
 		
 		long startTime = LogTime.getTime();
+		String annoDir = (varAnnoVec.size()>0) ? cfg.getVarAnnoDir() : null;
+		
 		if (cfg.isEVP()) {
-			LogTime.PrtDateMsg("Load EVP variant annotations (files " + varAnnoVec.size() + ")");
+			LogTime.PrtDateMsg("Add EVP variant effects");
+			if (annoDir!=null && varAnnoVec.size()>1) 
+				LogTime.PrtSpMsg(1, "Load " + varAnnoVec.size() + " from " + annoDir);
 			loadEVPfiles();
 		}
 		else if (cfg.isSnpEFF()) {
-			LogTime.PrtDateMsg("Load snpEFF variant annotations (files " + varAnnoVec.size() + ")");
+			LogTime.PrtDateMsg("Add snpEFF variant effects");
+			if (annoDir!=null && varAnnoVec.size()>1) 
+				LogTime.PrtSpMsg(1, "Load " + varAnnoVec.size() + " from " + annoDir);
 			loadSnpEFF();
 		}
 		// sets missense counts, etc
-		LogTime.PrtSpMsgTime(0, "Complete adding variant annotation", startTime);
+		LogTime.PrtSpMsgTime(0, "Finish adding variant annotation", startTime);
 	}
 	/********************************************************************
 	 * snpEFF
@@ -129,8 +137,6 @@ public class VarAnno {
 			}
 			rs.close();
 			String chrRoot = new MetaData(mDB).getChrRoot();
-			
-			LogTime.PrtSpMsg(2, "Variants: " + varMap.size() + "  Transcripts-Variants pairs: " + transMap.size());
 			
 			PreparedStatement ps1 = mDB.prepareStatement("update SNPtrans " +
 					"set effect=?, codons=?, AAs=?, AApos=? where snpid=? and transid=?");	
@@ -249,7 +255,7 @@ public class VarAnno {
 				
 				LogTime.PrtSpMsg(2, "Update SNP-trans: " + cntFileTotal + "                                  ");
 				if (skipSNP>0 || skipTrans>0) 
-					LogTime.PrtSpMsg(2, "Skipped SNPs: " + skipSNP + "  skipped Trans: " + skipTrans);
+					LogTime.PrtSpMsg(2, "Skipped SNPs: " + skipSNP + "   Skipped Trans: " + skipTrans);
 			} // end files
 		
 			LogTime.PrtSpMsg(1, "Update mySQL Variant tables                        ");
@@ -268,7 +274,7 @@ public class VarAnno {
 				}
 			}
 			if (cntAdd > 0) ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Added descriptions: " + cntDesc);
+			LogTime.PrtSpMsg(2, "Added descriptions: " + cntDesc + "                     ");
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "Loading the snpEFF files ");}
 	}
@@ -331,10 +337,12 @@ public class VarAnno {
 			PreparedStatement ps1 = mDB.prepareStatement("update SNPtrans " +
 					"set effect=?, cDNApos=?, CDSpos=?, AApos=?, AAs=?, codons=? " +
 					"where snpid=? and transid=?");		
-						
+					
+			int cntFile=0;
 			for (String file : varAnnoVec)
 			{
-				LogTime.PrtSpMsg(1, "Load " + file);
+				cntFile++;
+				LogTime.PrtSpMsg(1, "File #" + cntFile + " " + file);
 				int cntAdd=0, cntFileTotal=0, skipTrans = 0, skipSNPTrans = 0;
 				
 				BufferedReader br = new BufferedReader(new FileReader(new File(file)));

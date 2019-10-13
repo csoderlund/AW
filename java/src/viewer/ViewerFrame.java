@@ -142,18 +142,9 @@ public class ViewerFrame extends JFrame {
 		
 	private String getOverviewText() {
 		try {
-			String overview=overviewHead;
-			DBConn conn = getDBConnection();
-			ResultSet rs = executeQuery(conn, "SELECT overview, buildDate, chgDate, remark FROM metaData", null);
-			if (!rs.next()) {
-				LogTime.PrtError("viewAW cannot access overview");
-				return "cannot access overview";
-			}
-			overview += "Build Date: " +  rs.getDate(2) + 
-					"   Change Date: " + rs.getString(3) + "    " + rs.getString(4) 
-					+ "\n" + rs.getString(1);
 			
-			closeResultSet(rs);
+			DBConn conn = getDBConnection();
+			String overview=MetaData.getOverview(conn);
 			conn.close();
 			
 			return overview;

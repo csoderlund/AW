@@ -51,7 +51,8 @@ public class GeneCov {
 		
 		long time = LogTime.getTime();
 		geneCovDir = cfg.getGeneCovDir();
-		LogTime.PrtDateMsg("Loading transcript counts " + geneCovDir);
+		LogTime.PrtDateMsg("Add transcript counts");
+		LogTime.PrtSpMsg(1, "Load " + cfg.getGeneCovVec().size() + " files from " + geneCovDir);
 		geneCovVec = cfg.getGeneCovVec();
 		
 		transPat = Pattern.compile("(A|B|C)\\.(\\S+)"); // e.g. A.geneName or A.ENSMUST00000140873
@@ -67,7 +68,7 @@ public class GeneCov {
 	}
 	private void loadTransCov(){
 		try {
-			int nLib=0;
+			int nLib=0, cntFiles=0;
 			long totalLoad=0, totalAdd=0;
 		
 			for (String toks : geneCovVec)
@@ -76,6 +77,9 @@ public class GeneCov {
 				String file = x[0];
 				String libName = x[1];
 				String rep = x[2];
+				cntFiles++;
+				LogTime.rClear();
+				LogTime.PrtSpMsg(2, "File #" + cntFiles + " " + file);
 				
 				HashMap<String,HashMap<String,Integer>> counts = new HashMap<String,HashMap<String,Integer>>();
 				
@@ -196,8 +200,7 @@ public class GeneCov {
 				totalLoad+= (long) totalLoaded; 
 				totalAdd+=  (long) addLib;			
 			} // end loop geneCovVec
-			
-			LogTime.PrtSpMsg(2, ""); // so only last one shows; the #loaded and #skipped are the same for all
+			LogTime.rClear();
 			LogTime.PrtSpMsg(2, "Total loaded: " + totalLoad + "  Added: " + totalAdd);
 		}
 		catch(Exception e) {
@@ -221,7 +224,7 @@ public class GeneCov {
 			PreparedStatement ps0 = mDB.prepareStatement("insert ignore geneLib " +
 					"set GENEid=?,LIBid=?,repNum=0, refCount=0, altCount=0, pvalue=2," +
 					"libName=?, geneName=?");
-			mDB.openTransaction();
+			
 			int cntAdd=0, cntTrans=0;
 			
 			HashSet <String> newGeneLib = new HashSet <String> ();
@@ -251,14 +254,13 @@ public class GeneCov {
 			}
 			if (cntAdd>0) ps0.executeBatch();
 			LogTime.PrtSpMsg(2, "Add gene lib: " + cntTrans);
-			mDB.closeTransaction();
 			
 		// now update genesLib from transLib
 			int N = geneNames.size();
 			int cntUpdate=0, cntTotal=0;
-			PreparedStatement ps = mDB.prepareStatement("update geneLib set refcount2=?,altcount2=?,totcount2=? " +
+			PreparedStatement ps = mDB.prepareStatement(
+					"update geneLib set refcount2=?,altcount2=?,totcount2=? " +
 					"where geneid=? and libid=? and repnum=?");
-			mDB.openTransaction();
 			
 			for (int geneid : geneNames.keySet())
 			{
@@ -284,11 +286,11 @@ public class GeneCov {
 						ps.executeBatch();
 						cntUpdate = 0;
 					}
-				}
+				}	
 				rs.close();
 			}
 			if (cntUpdate > 0) ps.executeBatch();
-			mDB.closeTransaction();
+			
 			LogTime.PrtSpMsg(2, "Update gene lib: " + cntTotal);
 		}
 		catch(Exception e) {ErrorReport.die(e,"updating Express gene counts");}

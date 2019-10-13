@@ -29,6 +29,7 @@ public class CfgFileValidate {
 	 * Methods to check files and make sure they are the correct format
 	 */
 	public boolean checkGTK(String annoPath) {
+		LogTime.PrtSpMsg(2, "Genome annotation file " + annoPath);
 		if (!fileExists("Genome GTF file" , annoPath)) return false;
 		if (!fileIsGTF("Genome GTF file" , annoPath)) return false;
 		return true;
@@ -96,11 +97,11 @@ public class CfgFileValidate {
 			}
 			Vector <String> varVec = new Vector <String> ();
 			if (f.isFile()) {
-				if (!fileIsVCF("Variant file " + ford, f)) return null;
+				if (!fileIsVCF("Variant call file " + ford, f)) return null;
 				varVec.add(f.getAbsolutePath());
 				return varVec;
 			}
-			LogTime.PrtSpMsg(2, "Variant directory " + ford);
+			LogTime.PrtSpMsg(2, "Variant call directory " + ford);
 			for (File file : f.listFiles() )
 			{
 				if (file.isDirectory()) {
@@ -132,6 +133,7 @@ public class CfgFileValidate {
 	
 	public Vector <String> checkVarCovDir(String dirName) {
 		if (!dirExists("Variant coverage directory", dirName)) return null;
+		
 		LogTime.PrtSpMsg(2, "Variant coverage directory " + dirName);
 		Vector <String> varCovVec = dirOfLibs(dirName, ".bed");
 		if (varCovVec==null) return null;
@@ -156,6 +158,8 @@ public class CfgFileValidate {
 				LogTime.PrtError("No good bed files in this directory ");
 				return null;
 			}
+			LogTime.PrtSpMsg(3, "Good bed files " + varCovVec.size());
+			
 			return varCovVec;
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "checking variant count directory"); return null;}
@@ -175,18 +179,20 @@ public class CfgFileValidate {
 				return null;
 			}
 			Vector <String> varAnnoVec = new Vector <String> ();
-			// one file
+		// one file
 			if (f.isFile()) {
+				LogTime.PrtSpMsg(2, "One Variant effect file ");
 				if (!ford.endsWith(".vcf")) {
 					LogTime.PrtSpMsg(3, "Warning: no .vcf suffix " + ford);
 					cntWarn++;
 				}
-				if (!checkVarAnnoFile(ford)) return null;
+				if (!checkVarAnnoFile(ford)) 
+					return null;
 				varAnnoVec.add(f.getAbsolutePath());
 				return varAnnoVec;
 			}
-			// directory of files
-			LogTime.PrtSpMsg(2, "Variant annotation files " + ford);
+		// directory of files
+			LogTime.PrtSpMsg(2, "Variant effect files " + ford);
 			for (File file : f.listFiles() )
 			{
 				if (file.isDirectory()) {
@@ -223,6 +229,7 @@ public class CfgFileValidate {
 	/// goes with above 
 	private boolean checkVarAnnoFile(String file) {
 		try {
+			LogTime.PrtSpMsg(3, "Variant file " + file);
 			BufferedReader br = new BufferedReader(new FileReader(new File(file)));
 			boolean hasGood=false;
 			String line="";
@@ -230,12 +237,14 @@ public class CfgFileValidate {
 				if (line.startsWith("## ENSEMBL VARIANT EFFECT PREDICTOR")) {
 					isEVP = true;
 					hasGood=true;
+					LogTime.PrtSpMsg(4, "EVP file (ENSEMBL VARIANT EFFECT PREDICTOR)");
 					break;
 				}
 				else if (line.startsWith("##SnpEffVersion")) {
 					//if (!isVCF) LogTime.PrtSpMsg(3, file + " -- first line is not ##fileformat=VCF...");
 					isSnpEFF=true;
 					hasGood=true;
+					LogTime.PrtSpMsg(4, "SnpEFF file (SnpEffVersion)");
 					if (!line.contains("3.6b")) {
 						LogTime.PrtSpMsg(3, "Warning: " + file + " -- if this file is not created with version >3.6b, it may not work ");
 						LogTime.PrtSpMsg(4, line);
@@ -255,9 +264,9 @@ public class CfgFileValidate {
 	}
 	/***************************************************************/
 	public Vector <String> checkGeneCovDir(String dirName) {
-		if (!dirExists("Transcript coverage directory ", dirName)) return null;
+		if (!dirExists("Transcript count directory ", dirName)) return null;
 		
-		LogTime.PrtSpMsg(2, "Transcript coverage directory " + dirName);
+		LogTime.PrtSpMsg(2, "Transcript count directory " + dirName);
 		Vector <String> covVec = dirOfLibs(dirName, ".xprs");
 		if (covVec==null) return null;
 		
@@ -503,8 +512,9 @@ public class CfgFileValidate {
 							}
 						}
 						if (!chrRoot.equals("")) 
-							LogTime.PrtWarn("Could not find root of seqname (e.g. chr, contig)");
+							LogTime.PrtWarn("Could not find prefix of seqname (e.g. chr, contig)");
 					}
+					LogTime.PrtSpMsg(3, "Seqname prefix is '" + chrRoot + "'");
 					return true;
 				}
 				catch(Exception e)
@@ -516,6 +526,7 @@ public class CfgFileValidate {
 		catch(Exception e)
 		{
 			errmsg = "Could not read file";
+			ErrorReport.prtError(e, errmsg);
 		}
 		LogTime.PrtError(msg + ": " + file);
 		LogTime.PrtSpMsg(1, errmsg);

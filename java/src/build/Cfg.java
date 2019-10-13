@@ -26,11 +26,11 @@ public class Cfg {
 	// all the files and directories that can be in AW.cfg
 	private String gtfFile = 	null; 	// required
 	private String ncbiFile = null;		// optional
-	private String genomeDir = null;	// optional
+	private String genomeDir = null;		// optional
 	
-	private String varDirFile = null; // required
+	private String varDirFile = null; 		// required
+	private String varCovDir = null;			// required
 	private String varAnnoDirFile = null;	// optional
-	private String varCovDir = null;		// required
 	private String geneCovDir = null;		// optional
 	
 	// return to file readers
@@ -63,7 +63,10 @@ public class Cfg {
 	public String getNCBI () {return ncbiFile;}
 	
 	public Vector <String> getVarVec() { return varVec;}
+	public String getVarDir() {return varDirFile;}
+	
 	public Vector <String>  getVarAnnoVec() { return varAnnoVec ;}
+	public String getVarAnnoDir() {return varAnnoDirFile;}
 	
 	public String getVarCovDir() { return varCovDir;}
 	public Vector <String> getVarCovVec() { return varCovVec;}
@@ -278,25 +281,13 @@ public class Cfg {
 		}
 		return true;
 	}
-	private boolean dirExists(String file) {
-		File f = new File(file);
-		if (!f.exists()) 
-		{
-			LogTime.PrtError(file + " not found"); 
-			return false;
-		}
-		if (!f.isDirectory()) {
-			LogTime.PrtError(file + " must be a directory");
-			return false;
-		}
-		return true;
-	}
+	
 	/****************************************************
 	 * XXX Validate all input from CFG file
 	 */
 	public boolean validate() {
 		LogTime.PrtSpMsg(1, "Validate abbreviations");
-		int cntErr=0;
+		int cntErr=0, cntWarn=0;
 		Vector <String> sAb = new Vector <String> ();
 		for (String str1 : condVal1) {
 			String [] tok1 = str1.split(":");
@@ -332,43 +323,81 @@ public class Cfg {
 		vd.setCond(sAb, tAb);
 		LogTime.PrtSpMsg(1, "Checking files and directories");
 		
+		// Variants defined
 		if (varDirFile!=null) {
 			varVec = vd.checkVariant(varDirFile);
 			if (varVec==null || varVec.size()==0) cntErr++; 
 		} 
-		if (varCovDir!=null) {
+		else {
+			LogTime.PrtError("Variant call file or directory must exist ");
+			cntErr++;
+		}
+		
+		// Variant coverage
+		if (varCovDir!=null) { 
 			varCovVec = vd.checkVarCovDir(varCovDir);
 			if (varCovVec==null || varCovVec.size()==0) cntErr++; 
 		}
-		if (gtfFile!=null) {
-			if (!vd.checkGTK(gtfFile)) cntErr++; 
+		else {
+			LogTime.PrtError("Variant coverage directory must exist ");
+			cntErr++;
 		}
-		if (genomeDir!=null && !genomeDir.startsWith("#")) {
-			genomeVec = vd.checkGenomeDir(genomeDir);
-			if (genomeVec==null || genomeVec.size()==0) cntErr++; 
-			else remark += (remark.equals("")) ? "AAseqs" : "; AAseqs";
-		}
-		if (varAnnoDirFile!=null && !varAnnoDirFile.startsWith("#")) {
+		
+		//Variant effect (optional)
+		if (varAnnoDirFile!=null && !varAnnoDirFile.startsWith("#")) { 
 			varAnnoVec = vd.checkVarAnno(varAnnoDirFile);
-			if (varAnnoVec==null || varAnnoVec.size()==0) cntErr++; 
+			if (varAnnoVec==null || varAnnoVec.size()==0) cntWarn++; 
 			else {
 				isSnpEFF = vd.isSnpEFF;
 				isEVP = vd.isEVP;
 				remark = (isEVP) ? "EVP" : "snpEFF";
 			}
 		}
+		else LogTime.PrtSpMsg(2, "No variant effect file (optional)");
 		
-		if (ncbiFile!=null && !ncbiFile.startsWith("#")) {
-			if (!vd.checkNCBI(ncbiFile)) cntErr++; 
-			else remark += (remark.equals("")) ? "NCBI" : "; NCBI";
+		// Genome annotation file
+		if (gtfFile!=null) { 
+			if (!vd.checkGTK(gtfFile)) cntErr++; 
 		}
+		else {
+			LogTime.PrtError("Genome annotation file must exist ");
+			cntErr++;
+		}
+		
+		// Genome files
+		if (genomeDir!=null && !genomeDir.startsWith("#")) {
+			genomeVec = vd.checkGenomeDir(genomeDir);
+			if (genomeVec==null || genomeVec.size()==0) cntErr++; 
+			else remark += (remark.equals("")) ? "AAseqs" : "; AAseqs";
+		}
+		else {
+			LogTime.PrtError("Genome directory of sequence files must exist ");
+			cntErr++;
+		}
+		
+		// NCBI (optional)
+		if (ncbiFile!=null && !ncbiFile.startsWith("#")) {
+			if (vd.checkNCBI(ncbiFile)) 
+				remark += (remark.equals("")) ? "NCBI" : "; NCBI";
+			else cntWarn++;
+		}
+		else LogTime.PrtSpMsg(2, "No NCBI functional annotation file (optional)");
+		
+		// Counts (optional)
 		if (geneCovDir!=null && !geneCovDir.startsWith("#")) {
 			geneCovVec = vd.checkGeneCovDir(geneCovDir);
-			if (geneCovVec==null || geneCovVec.size()==0) cntErr++; 
-			else remark += (remark.equals("")) ? "Reads" : "; Read";
+			if (geneCovVec!=null && geneCovVec.size()>0)
+				remark += (remark.equals("")) ? "Reads" : "; Read";
+			else cntWarn++;
 		}	
-		if (cntErr>0) return false;
-		int cntWarn = vd.getWarn();
+		else LogTime.PrtSpMsg(2, "No count files (optional)");
+		
+		if (cntErr>0) {
+			LogTime.PrtSpMsg(0, "Fatal errors: " + cntErr);
+			return false;
+		}
+		
+		cntWarn += vd.getWarn();
 		if (cntWarn>0) {
 			if (!LogTime.yesNo(cntWarn + " warnings. Continue?")) return false;
 		}

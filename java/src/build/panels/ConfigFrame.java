@@ -26,7 +26,9 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -52,6 +54,7 @@ import build.Bmain;
 import build.Cfg;
 import database.HostCfg;
 import database.DBConn;
+import database.MetaData;
 
 public class ConfigFrame extends JFrame
 {
@@ -139,7 +142,7 @@ public class ConfigFrame extends JFrame
 		create0Panel();
 		enableControls(false);
 		setTitle(pgmName);
-		setBounds(600,400,650,850); // x, y, width, height
+		setBounds(600,400,700,900); // x, y, width, height
 	}
 	/*************************************************
 	 * XXX Create Panel
@@ -260,39 +263,8 @@ public class ConfigFrame extends JFrame
 		btnRemProject.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) 
 			{
-				if (currentProject.equals("")) return; // it shouldn't happen but...
-				String dbName = Globals.DBprefix + currentProject;
-				boolean bInDB = hostCfg.existsDB(dbName);
-				
-				if (bInDB)
-				{
-					int choice = JOptionPane.showConfirmDialog(null, "Remove database?", "Remove the database?",
-							JOptionPane.YES_NO_OPTION);
-					if (choice == JOptionPane.YES_OPTION)
-					{
-						try
-						{
-							if (hostCfg.deleteDB(dbName))
-								System.out.println("Complete delete " + dbName);
-						}
-						catch(Exception e)
-						{
-							ErrorReport.infoBox("There was a problem deleting the database.");
-							e.printStackTrace();
-						}
-					}
-				}
-				int choice = JOptionPane.showConfirmDialog(null, "Remove project directory from disk?", "Remove from disk?",
-						JOptionPane.YES_NO_OPTION);
-				if (choice == JOptionPane.YES_OPTION)
-				{
-					File projDir = new File(Globals.projDir + "/" + currentProject);
-					if (projDir.isDirectory())
-					{
-						deleteDir(projDir);
-					}
-					updateProjList(cmbProjects,"");
-				}
+				final RemoveType remove = new RemoveType();
+				remove.setVisible(true);	
 			}
 		});
 		pRow.add(Box.createHorizontalStrut(10));
@@ -308,13 +280,9 @@ public class ConfigFrame extends JFrame
 				else {
 					try {
 						DBConn mdb = hostCfg.openDB(currentProject);
-						ResultSet rs = mdb.executeQuery("Select overview, remark from metaData");
-						if (rs.next()) {
-							String ov = rs.getString(2) + "\n"  + rs.getString(1);
-							ViewTextPane.displayInfoMonoSpace(getInstance(), "Overview for " + 
-									currentProject, ov, false, true);
-						}
-						else LogTime.infoBox(currentProject + " problem getting overview");
+						String ov = MetaData.getOverview(mdb);
+						ViewTextPane.displayInfoMonoSpace(getInstance(), 
+								"Overview for " + currentProject, ov, false, true);
 					}
 					catch (Exception ee) {ErrorReport.prtError(ee, "Cannot open database " + currentProject);}
 				}
@@ -1366,31 +1334,7 @@ public class ConfigFrame extends JFrame
 		}
 	}
 
-	public static void clearDir(File d)
-	{
-		if (d.isDirectory())
-		{
-			for (File f : d.listFiles())
-			{
-				if (f.isDirectory() && !f.getName().equals(".") && !f.getName().equals("..")) 
-				{
-					clearDir(f);
-				}
-				f.delete();
-			}
-		}
-		//WN why needed?? checkCreateDir(d);
-	}
-	public static void deleteDir(File d)
-	{
-		try {
-			clearDir(d);
-			d.delete();
-			if (d.exists()) {
-				System.out.println("Cannot delete directory " + d.getName() + " -- may have hidden files ");
-			}
-		} catch (Exception e) {ErrorReport.prtError(e,  "Could not delete " + d.getAbsolutePath());}
-	}
+	
 	private void horizSeparator(JPanel mainPanel) // need to limit its size
 	{
 		mainPanel.add(Box.createVerticalStrut(10));
@@ -1410,4 +1354,139 @@ public class ConfigFrame extends JFrame
 		btnOverProject.setEnabled(enable);
 		btnBuildDatabase.setEnabled(enable);
 	}
+	/****************************************************************
+	 * All remove methods
+	 */
+	
+	private class RemoveType extends JDialog {
+		private static final long serialVersionUID = 1L;
+	    	   
+        	public RemoveType() {
+        		setModal(false);
+        		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        		setTitle("Remove.... ");
+    		
+        		JPanel selectPanel = CreateJ.panelPage();
+        		
+        		String dbName = Globals.DBprefix + currentProject;
+        		boolean bInDB = hostCfg.existsDB(dbName);
+	    		
+	    		btnDB = CreateJ.createCheckBox("AW database", false, bInDB);
+	        selectPanel.add(btnDB);
+	        selectPanel.add(Box.createVerticalStrut(5));
+            	
+        		btnAll = CreateJ.createCheckBox("All files from disk for this AW project", false, true);
+        		selectPanel.add(btnAll);		
+         	selectPanel.add(Box.createVerticalStrut(5));
+                    		
+         	JPanel buttonPanel = CreateJ.panelLine();
+        		btnOK = CreateJ.button("OK");
+        		btnOK.addActionListener(new ActionListener() {
+    				public void actionPerformed(ActionEvent e) {
+    					setVisible(false);
+    					doOp();
+    				}
+    			});
+        		buttonPanel.add(btnOK);
+        		buttonPanel.add(Box.createHorizontalStrut(20));
+        		
+        		btnCancel = CreateJ.button("Cancel");
+        		btnCancel.addActionListener(new ActionListener() {
+    				public void actionPerformed(ActionEvent e) {
+    					setVisible(false);
+    				}
+    			});
+        		buttonPanel.add(btnCancel);
+        		
+        		btnOK.setPreferredSize(btnCancel.getPreferredSize());
+        		btnOK.setMaximumSize(btnCancel.getPreferredSize());
+        		btnOK.setMinimumSize(btnCancel.getPreferredSize());
+        		buttonPanel.setMaximumSize(buttonPanel.getPreferredSize());
+
+           	JPanel mainPanel = CreateJ.panelPage();
+        		mainPanel.add(selectPanel);
+        		mainPanel.add(Box.createVerticalStrut(15));
+        		mainPanel.add(buttonPanel);
+        		
+        		mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        		add(mainPanel);
+        		
+        		pack();
+        		this.setResizable(false);
+        		CreateJ.centerScreen(this);
+        	} 
+       
+        	private void doOp() {
+        		if (btnDB.isSelected()) {
+        			System.out.println("Remove database....");
+        			removeDB();
+        		}
+        		if (btnAll.isSelected()) {
+        			System.out.println("Remove project files ....");
+        			removeProject();
+        		}	
+        	}
+        	/*********************************************************/
+        	private void removeDB() {
+        		try
+        		{
+        			int choice = JOptionPane.showConfirmDialog(null, "Remove database?", "Remove the database?",
+							JOptionPane.YES_NO_OPTION);
+				if (choice == JOptionPane.YES_OPTION)
+				{
+					try
+					{
+						String dbName = Globals.DBprefix + currentProject;
+						if (hostCfg.deleteDB(dbName))
+							System.out.println("Complete remove " + dbName);
+					}
+					catch(Exception e)
+					{
+						ErrorReport.infoBox("There was a problem deleting the database.");
+						e.printStackTrace();
+					}
+				}
+        		} 
+        		catch (Exception e){ErrorReport.prtError(e, "Cannot remove database");}
+        	}
+        
+        	private void removeProject() {
+        		try {
+        			int choice = JOptionPane.showConfirmDialog(null, "Remove project directory from disk?", "Remove from disk?",
+    						JOptionPane.YES_NO_OPTION);
+    				if (choice == JOptionPane.YES_OPTION)
+    				{
+    					File projDir = new File(Globals.projDir + "/" + currentProject);
+    					if (projDir.isDirectory())
+    					{
+    						clearDir(projDir);
+	    	        			projDir.delete();
+	    	        			if (projDir.exists()) 
+	    	        				System.out.println("Cannot delete directory " + projDir.getName() + " -- may have hidden files ");
+	    	        			else System.out.println("Directory removed ");
+    					}
+    					updateProjList(cmbProjects,"");
+    				}
+        		}
+        		catch(Exception e) {ErrorReport.prtError(e, "Error removing project");}
+        	}
+        	private void clearDir(File d)
+        	{
+        		if (d.isDirectory())
+        		{
+        			System.out.println("   Remove " + d.getName());
+        			
+        			for (File f : d.listFiles())
+        			{
+        				if (f.isDirectory() && !f.getName().equals(".") && !f.getName().equals("..")) 
+        				{
+        					clearDir(f);
+        				}
+        				f.delete();
+        			}
+        		}
+        	}     
+        	JCheckBox btnDB = null, btnAll = null;
+        	JButton btnOK = null, btnCancel = null;
+    } // end RemoveType
 }

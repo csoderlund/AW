@@ -33,12 +33,17 @@ public class VarCov {
 	private String varCovDir;
 	private String chrRoot;
 	private Vector <String> chrVec;
-	private int numReps=Globals.MAX_REPS; // CASQ 7Sept19 4->10 
+	private int numReps=Globals.MAX_REPS; // CASQ 7Sept19 4->20 
 	
 	public VarCov(DBConn dbc, Cfg c, int only) {
 		mDB = dbc; cfg = c;
 		varCovVec = cfg.getVarCovVec();
 		varCovDir = cfg.getVarCovDir();
+		
+		long time = LogTime.getTime();
+		LogTime.PrtDateMsg("Add variant coverage ");
+		LogTime.PrtSpMsg(1, "Load " + varCovVec.size() + " files from " + varCovDir);
+		
 		readDB(); // everything needs this
 		
 		if (only==1) { // called to only execute the clustering and read count assignment
@@ -63,8 +68,7 @@ public class VarCov {
 			catch (Exception e) {ErrorReport.prtError(e, "VarCov: clearing tables 1");}
 		}
 		
-		long time = LogTime.getTime();
-		LogTime.PrtDateMsg("Load variant coverage " + varCovVec.size() + " files ");
+		
 		Dynamic.addLib(dbc);
 		try {
 			mDB.executeUpdate("Update library set reps=0");
@@ -84,7 +88,7 @@ public class VarCov {
 		sumGeneLib();
 		deClusterSNPs();
 		sumTransLib(false);
-		LogTime.PrtSpMsgTime(0, "Complete variant postprocess ", time);
+		LogTime.PrtSpMsgTime(0, "Finish variant postprocess ", time);
 	}
 	/***********************************************
 	 * Files have already been verified
@@ -105,19 +109,23 @@ public class VarCov {
 			HashMap <String, Integer> cntReps = new HashMap <String, Integer> ();
 			
 			for (String bedFile : varCovVec) {
-				LogTime.PrtSpMsg(1, "Load " + bedFile);
+				cntFile++;
+				chrClear();
 				
-				int fileAdd=0, addBatch=0, cntSkipped=0, cntZero=0, cntRead=0;
+				int fileAdd=0, addBatch=0, cntSkip1=0, cntSkip2=0, cntZero=0, cntRead=0;
 				
 				String [] x = bedFile.split(":");
 				String file = x[0];
 				libName = x[1];
+				
+				LogTime.PrtSpMsg(2, "File #" + cntFile +  " " + file);
+				
 				if (cntReps.containsKey(libName)) cntReps.put(libName, cntReps.get(libName)+1);
 				else  cntReps.put(libName, 1);
 				
 				String repStr = x[2];
 				int repNum = Integer.parseInt(repStr); // the repNum comes from the file name
-				cntFile++;
+				
 					
 				if (!libMap.containsKey(libName)) { // shouldn't 
 					LogTime.warn("No library - ignore: " + file);
@@ -135,18 +143,19 @@ public class VarCov {
 					String [] tok = line.split("\\s+");
 					if (tok.length==0) continue;
 					if (tok.length!=4) {
-						LogTime.PrtSpMsg(3, "File #"  + cntFile +  " " + file +" line# " + cntRead + ": " + line + "                               ");		
+						if (cntSkip1==0) LogTime.PrtWarn("Bad line# " + cntRead + ": " + line + "                               ");		
+						cntSkip1++;
 						continue;
 					}	
 					String loc;
-					String chr = getChr(tok[0], line);
+					String chr = chrCheck(tok[0], line);
 					if (chr==null) continue;
 					
 					int pos = Integer.parseInt(tok[1])+1; // for bed files, which use zero offset
 					loc = chr + ":" +  pos;	
 					if (!snpMap.containsKey(loc)) {
-						if (cntSkipped<3) LogTime.warn("Skipped - " + loc);
-						cntSkipped++;
+						if (cntSkip2==0) LogTime.warn("Ignore line# " + cntRead + " Location: " + loc + "      ");
+						cntSkip2++;
 						continue;
 					}
 					int SNPid = snpMap.get(loc);
@@ -175,11 +184,17 @@ public class VarCov {
 					if (addBatch == 100) {
 						addBatch=0;
 						ps.executeBatch();
-						LogTime.r("File#" + cntFile + "  Read:" + cntRead + "  Add:" + fileAdd + "  Skipped:" + cntSkipped);
+						LogTime.r("File#" + cntFile + "  Read:" + cntRead + "  Add:" + fileAdd);
 					}
 				} // Loop through read file
 				if (addBatch > 0) ps.executeBatch();
-				LogTime.PrtSpMsg(2, "Read:" + cntRead + "  Add:" + fileAdd + "  Skipped:" + cntSkipped + " Zero alt:ref: " + cntZero);
+				
+				String xx = (cntZero>0) ? "    Zero alt:ref: " + cntZero : "         ";
+				LogTime.PrtSpMsg(3, "Read:" + cntRead + "    Add:" + fileAdd + xx + "            ");
+				if (cntSkip1>0) LogTime.PrtSpMsg(3, "***Ignored lines: " + cntSkip1);
+				if (cntSkip2>0) LogTime.PrtSpMsg(3, "***Bad location:  " + cntSkip2);
+				chrPrtErr();
+				
 			} // loop through files
 			
 			int max=0;
@@ -191,9 +206,6 @@ public class VarCov {
 			LogTime.PrtSpMsgTime(2, 
 				"Add total variants: " + totalCnt +  "  (Max Reps: " + max + ")", time);
 			
-			if (cntChrErr>0 || cntChrErr2>0)
-				LogTime.PrtSpMsg(3, "Error with chromosomes: " + (cntChrErr+cntChrErr2));
-			
 			if (totalCnt==0) ErrorReport.die("Did not add any variant coverage counts");
 		}
 		catch (Exception e){ErrorReport.die(e, "Adding variant coverage");}
@@ -201,25 +213,39 @@ public class VarCov {
 	/***********************************************
 	 * parse chromosome
 	 */
-	private int cntChrErr=0, cntChrErr2=0;
-	private String getChr(String chr, String line) {
+	private HashSet <String> badChr = new HashSet <String> ();
+	private int cntChrErr=0, cntBadChr=0;
+	
+	private String chrCheck(String chr, String line) {
+		String chrX="";
 		if (chr.startsWith(chrRoot)) {
-			chr = chr.substring(chrRoot.length());
+			chrX = chr.substring(chrRoot.length());
 		}
 		else {
-			if (cntChrErr<3) LogTime.PrtWarn("Line does not start with root '" + chrRoot +"'" +"\nLine: " + line);
-			else if (cntChrErr==3) LogTime.PrtWarn("Surpressing further such messages");
+			if (cntChrErr==0) LogTime.PrtWarn("Line does not start with prefix '" + chrRoot +"'" +"\nLine: " + line);
 			cntChrErr++;
 			return null;
 		}
-		if (!chrVec.contains(chr)) {
-			if (cntChrErr2<3) LogTime.PrtWarn("Line does not start with a valid chr (i.e. Seqname in GTF)\nLine: " + line);
-			else if (cntChrErr2==3) LogTime.PrtWarn("Surpressing further such messages");
-			cntChrErr2++;
+		if (!chrVec.contains(chrX)) { 
+			if (!badChr.contains(chrX)) LogTime.PrtWarn("No seqname '" + chr + "' in database");
+			badChr.add(chrX);
+			cntBadChr++;
 			return null;
 		}
-		return chr;
-	}	
+		return chrX;
+	}
+	private void chrClear() {
+		cntChrErr=0;
+		cntBadChr=0;
+		badChr.clear();
+	}
+	private void chrPrtErr() {
+		if (cntChrErr>0) 
+			LogTime.PrtSpMsg(3,"***Lines that do no start with prefix: " + cntChrErr);
+		if (cntBadChr>0) 
+			LogTime.PrtSpMsg(3,"***No seqnane in database:  " + cntBadChr);
+	}
+	
 	/* 
 	 * mark SNPs to exclude from summing transcript SNPs in order to approximate  
 	 * independent reads for obtaining accurate p-value
@@ -305,7 +331,7 @@ public class VarCov {
 				ps.executeBatch();
 			}// end loop through trans
 			int p = (int)(((float) cntEx/(float) cntTot)*100.0);
-			LogTime.PrtSpMsg(2, "Excluded SNP/trans pairs for summing of counts " + cntEx + "(" + p + "%)");
+			LogTime.PrtSpMsg(2, "Excluded SNP/trans pairs for summing of counts: " + cntEx + "(" + p + "%)");
 		}
 		catch (Exception e){ErrorReport.die(e, "doing SNP decluster");	}		
 	}
@@ -372,7 +398,7 @@ public class VarCov {
 					mDB.executeUpdate("Update SNP set cntLibCov=" + cov20[i] + ",cntCov=" + covCnt[i] + 
 						" where SNPid=" + i);
 			}
-			LogTime.PrtSpMsgTime(2, "Finish updating SNP Lib - add: " + cntInsert, time);	
+			LogTime.PrtSpMsgTime(2, "Add to SNP Lib: " + cntInsert, time);	
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing SNPlib sums");}
 	}
@@ -406,7 +432,7 @@ public class VarCov {
 			
 			int cntTotal=0, cnt=0;
 			for (int i=0; i<=numGenes; i++) if (!gene[i].equals("")) cnt++;
-			LogTime.PrtSpMsg(2, "Read " + numGenes + " genes of which " + cnt + " have variants");
+			LogTime.PrtSpMsg(2, "Read Genes: " + numGenes + "    With variants: " + cnt);
 	
 			PreparedStatement ps0 = mDB.prepareStatement("INSERT geneLib SET " +
 					" GENEid=? ,geneName=?,LIBid=?,libName=?,repNum=?" +
@@ -477,7 +503,7 @@ public class VarCov {
 					mDB.executeUpdate("Update gene set cntSNPCov=" + 
 							cntCov20 + " where GENEid=" + GENEid);	
 			} // gene loop
-			LogTime.PrtSpMsgTime(2, "Finish Gene Lib - add: " + cntTotal, time);
+			LogTime.PrtSpMsgTime(2, "Add to Gene Lib: " + cntTotal, time);
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing sums for geneLib");}
 	}
@@ -509,7 +535,7 @@ public class VarCov {
 			
 			int cntInsert=0, cnt=0;
 			for (int i=0; i<=numTrans; i++) if (!transIn[i].equals("")) cnt++;
-			LogTime.PrtSpMsg(2, "Read " + numTrans + " trans of which " + cnt + " have variants");
+			LogTime.PrtSpMsg(2, "Read Trans: " + numTrans + "   With variants: " + cnt + "         ");
 			
 			PreparedStatement ps0 = mDB.prepareStatement("INSERT transLib SET " +
 					" TRANSid=?,transName= ?,LIBid=?,libName=? ,repNum=?," +
@@ -599,7 +625,7 @@ public class VarCov {
 				if ((cntInsert % 1000) == 0)
 					LogTime.r("Trans# " + TRANSid + " add " + cntInsert);		
 			} // trans loop
-			LogTime.PrtSpMsgTime(2, "Finish Trans Lib - add: " + cntInsert, time);
+			LogTime.PrtSpMsgTime(2, "Add to Trans Lib: " + cntInsert, time);
 		}
 		catch (Exception e) {ErrorReport.die(e, "doing sums for transLib");}
 	}

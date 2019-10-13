@@ -52,8 +52,6 @@ public class Overview {
 				 
          mDB = dbc; 
          try {
-    	 	 	pwObj = new PrintWriter(new FileOutputStream(ovFile, false)); 
-    	 	 
 	         for (int i=0; i<nStrains; i++) {
 	        	 	xSt2Strain.put(strAbbv[i], strains[i]);
 	        	 	xStrain2St.put(strains[i], strAbbv[i]);
@@ -87,9 +85,9 @@ public class Overview {
        		LogTime.PrtSpMsg(1, "Total size of rep libraries will only be written to " + ovFile);
        		lines.add("");
        		makeReps();
-       		text = "";
-		 	for (int i=0; i< lines.size(); i++) 
-		 		text += lines.get(i) + "\n";
+       		
+       		text = MetaData.getOverview(mDB);
+		 	PrintWriter pwObj = new PrintWriter(new FileOutputStream(ovFile, false)); 
         	 	pwObj.print(text);
         	 	pwObj.close();
         	 	
@@ -588,5 +586,4 @@ public class Overview {
 	private String [][] rows = null;
 	private Vector <String> lines = new Vector <String> ();
 	private DecimalFormat df = new DecimalFormat("###,###,###,###");
-	private PrintWriter pwObj;
 }

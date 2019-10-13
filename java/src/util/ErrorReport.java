@@ -46,7 +46,7 @@ public class ErrorReport {
 				pWriter = new PrintWriter(new FileWriter(fname, true));
 			}
 		} catch (IOException e1) {
-			System.err.println("An error has occurred, however HW was unable to create an error log file");
+			System.err.println("An error has occurred, however AW was unable to create an error log file");
 			System.err.println(debugInfo);
 			e.printStackTrace();
 			return;
@@ -82,7 +82,7 @@ public class ErrorReport {
 		System.exit(-1);
 	}
 	public static void die(Throwable e, String debugInfo) {
-		System.err.println("Fatal Error: " + debugInfo + "  (see error.log)");
+		System.err.println("Fatal Error: " + debugInfo + "  (" + strFileName + ")");
 		reportError(strFileName, e, debugInfo, false);
 		System.exit(-1);
 	}

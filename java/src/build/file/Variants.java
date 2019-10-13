@@ -37,7 +37,9 @@ public class Variants {
 		Vector <String> varFiles = cfg.getVarVec();
 	
 		long startTime = LogTime.getTime();
-		LogTime.PrtDateMsg("Add variants to database");
+		LogTime.PrtDateMsg("Add variant calls to database");
+		if (varFiles.size()>1) 
+			LogTime.PrtSpMsg(1, "Load " + varFiles.size() + " files from " + cfg.getVarDir());
 		
 		try { // this is what gets updated in this file
 			mDB.executeUpdate("truncate table SNP");
@@ -67,7 +69,9 @@ public class Variants {
 	 */
 	private void readFileAddSNPtables(String file, int fileCnt) {	
 		try {		
-			LogTime.PrtSpMsg(1, "Load file#" + fileCnt + " " + file);
+			LogTime.PrtSpMsg(1, "File#" + fileCnt + " " + file);
+			chrClear();
+			
 			BufferedReader reader = new BufferedReader ( new FileReader ( file ) ); 
 			String line="";
 			int read=0, cnt=0, newSNP=0, newIND=0, addSNP=0, addExon=0, addTrans=0, addGene=0;
@@ -97,7 +101,7 @@ public class Variants {
 				}
 				read++;
 				
-				String chr = getChr(tok[chrCol], line);
+				String chr = chrCheck(tok[chrCol], line);
 				if (chr==null) continue;
 				
 				int pos = Integer.parseInt(tok[locCol]);
@@ -251,37 +255,58 @@ public class Variants {
 				
 			} // End loop through lines of file
 			
-			LogTime.PrtSpMsg(2, "Read: " + read + "  Variants: " + addSNP + 
-					 "  In Exon: " + addExon + "  New SNP: " + newSNP + "  New Indel: " + newIND + "     ");
-			LogTime.PrtSpMsg(2, "Genes with variants: " + allGeneSet.size() + " Gene-variant pairs: " + addGene);
-			LogTime.PrtSpMsg(2, "Trans with variants: " + allTrSet.size() +   " Tran-variant pairs: " + addTrans);
+			LogTime.PrtSpMsg(2, "Read: " + read + "   Variants: " + addSNP + 
+					 "  In Exon: " + addExon + "   New SNP: " + newSNP + "   New Indel: " + newIND + "     ");
+			LogTime.PrtSpMsg(2, "Genes with variants: " + allGeneSet.size() + "   Gene-variant pairs: " + addGene);
+			LogTime.PrtSpMsg(2, "Trans with variants: " + allTrSet.size() +   "   Tran-variant pairs: " + addTrans);
 			
 			if (addSNP==0) ErrorReport.die("No variants added");
+			
+			chrPrt();
 		}
 		catch (Exception e) {ErrorReport.die(e, "Reading Variant file");}
 	}
-	private int cntChrErr=0, cntChrErr2=0;
-	private String getChr(String chr, String line) {
+	/*******************************************************
+	 * CASZ 8Oct19 print one of each type of error per file
+	 */
+	private HashSet <String> badChr = new HashSet <String> ();
+	private int cntChrErr=0, cntBadChr=0;
+	
+	private String chrCheck(String chr, String line) {
+		String chrX="";
 		if (chr.startsWith(chrRoot)) {
-			chr = chr.substring(chrRoot.length());
+			chrX = chr.substring(chrRoot.length());
 		}
 		else {
-			if (cntChrErr<3) LogTime.PrtWarn("Line does not start with root '" + chrRoot +"'" +"\nLine: " + line);
-			else if (cntChrErr==3) LogTime.PrtWarn("Surpressing further such messages");
+			if (cntChrErr==0) LogTime.PrtWarn("Line does not start with prefix '" + chrRoot +"'" +"\nLine: " + line);
 			cntChrErr++;
 			return null;
 		}
-		if (!chrGeneMap.containsKey(chr)) { // shouldn't happen, already checked above
-			LogTime.PrtWarn("no chr " + chr + " in database");
+		if (!chrVec.contains(chrX)) { 
+			if (!badChr.contains(chrX)) LogTime.PrtWarn("No seqname '" + chr + "' in database");
+			badChr.add(chrX);
+			cntBadChr++;
 			return null;
 		}
-		if (!chrVec.contains(chr)) {
-			if (cntChrErr2<3) LogTime.PrtWarn("Line does not start with a valid chr (i.e. Seqname in GTF)\nLine: " + line);
-			else if (cntChrErr2==3) LogTime.PrtWarn("Surpressing further such messages");
-			cntChrErr2++;
-			return null;
+		chrCntMap.put(chrX, chrCntMap.get(chrX)+1);
+		return chrX;
+	}
+	private void chrClear() {
+		cntChrErr=0;
+		cntBadChr=0;
+		badChr.clear();
+		chrCntMap.clear();
+		for (String x : chrVec) chrCntMap.put(x, 0);
+	}
+	private void chrPrt() {
+		if (cntChrErr>0) LogTime.PrtSpMsg(2,"***Lines that do no start with prefix: " + cntChrErr);
+		if (cntBadChr>0) LogTime.PrtSpMsg(2,"***No seqnane in database:  " + cntBadChr);
+		
+		String line= chrRoot + ": ";
+		for (String x : chrCntMap.keySet()) {
+			line += x + ":" + chrCntMap.get(x) + " ";
 		}
-		return chr;
+		LogTime.PrtSpMsg(2, line);
 	}
 	/************************************************************
 	 * XXX update transExon
@@ -314,7 +339,7 @@ public class Variants {
 					cntGn++;
 				}
 			}
-			LogTime.PrtSpMsg(2, "Complete update - Genes: " + cntGn +
+			LogTime.PrtSpMsg(2, "Update Genes: " + cntGn +
 					"  Trans: " + cntTr + "  Exons: " + cntEx);
 		}
 		catch (Exception e) {ErrorReport.die(e, "Variant: addSNPs2Trans");}
@@ -325,15 +350,14 @@ public class Variants {
 	 */
 	private void readDB() {
 		try {
-			LogTime.PrtSpMsg(1, "Reading database for coords");
 			ResultSet rs=null;
-			int cntTr=0, cntExon=0, cntGene=0;
 			MetaData md = new MetaData(mDB);
 			chrRoot = md.getChrRoot();
 			chrVec = md.getChr();
 			
 			for (String chr : chrVec) {
 				chrGeneMap.put(chr, new Vector <Gene> ());
+				chrCntMap.put(chr, 0);
 			}
 			
 			for (String chr : chrGeneMap.keySet()) {
@@ -344,7 +368,6 @@ public class Variants {
 				while (rs.next()) {
 					Gene g = new Gene(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4));
 					gvec.add(g);
-					cntGene++;
 				}
 				chrGeneMap.put(chr, gvec); 
 				
@@ -355,7 +378,6 @@ public class Variants {
 					while (rs.next()) {
 						Trans tr = new Trans(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4));
 						gn.addTr(tr);
-						cntTr++;
 					}
 				
 					for (Trans tr: gn.trans) {
@@ -364,13 +386,12 @@ public class Variants {
 								"where TRANSid=" + tr.transid + " order by cStart"); 
 						while (rs.next()) {
 							tr.addExon(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5));
-							cntExon++;
 						}
 					}
 				}
 			} // loop trough chr
 			if (rs!=null) rs.close();
-			LogTime.PrtSpMsg(2, "Gene: " + cntGene + "   Trans: " + cntTr + "   Exons: " + cntExon);
+			LogTime.r("                                                     ");
 		}
 		catch (Exception e) {ErrorReport.die(e, "read DB ");}
 	}
@@ -381,6 +402,7 @@ public class Variants {
 	private HashSet <Gene> allGeneSet = new HashSet <Gene> ();
 	private HashSet <Trans> allTrSet = new HashSet <Trans> ();
 	private HashMap <String, Vector <Gene>> chrGeneMap = new HashMap <String, Vector <Gene>> ();
+	private HashMap <String, Integer> chrCntMap = new HashMap <String, Integer> ();
 
 	// Gene
 	private class Gene {
@@ -451,4 +473,5 @@ public class Variants {
 		String loc="";
 	}
 	private DBConn mDB;
+	
 }

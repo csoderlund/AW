@@ -1,6 +1,6 @@
 <html>
 <h2>Input files</h2>
-<h3>1. Raw reads (pipeline only</h3>
+<h3>Raw reads (pipeline only)</h3>
 <i><b>The naming is very important</i></b>, as the <tt>runAW</tt> software uses the name to decode the 
 <br>conditions and replicates. The AW allows one or two conditions, which you will define in 
 <br>the runAW program that builds the database. The runAW has a table for each condition, 
@@ -54,7 +54,7 @@ suffixes too; see the Pipeline documentation)
 </ol>
 
 
-<h3>2. Genome Annotation GTF file</h3>
+<h3>Genome Annotation GTF file</h3>
 
 This file must be formated according to http://mblab.wustl.edu/GTF22.html.
 <br>The AW parser works well with the Ensembl files; if you are using a GTF other than Ensembl,
@@ -103,7 +103,7 @@ suffix is added to the gene name.
 <li>All entries for a gene must be contiguous in the file.
 </ul>
 
-<h3>3. Genome Sequence</h3>
+<h3>Genome Sequence</h3>
 For input into <tt>runAW</tt>, the genome sequence must be split by chromosome (or contig). 
 <br>The filename of the chromosome must correspond to those found in the GTF file, e.g. chr1.fa, 
 <br>chr2.fa and chrX.fa. You may use the script <tt>GSsplit.pl</tt>.
@@ -116,10 +116,10 @@ For input into <tt>runAW</tt>, the genome sequence must be split by chromosome (
 <br>will be determined and fixed.
 
 
-<h3>3. Variant Call Format file</h3>
+<h3>Variant Call Format file</h3>
 Standard format. You may want to use dbSNP names where possible.
 
-<h3>4. Variant effect (runAW - optional)</h3>
+<h3>Variant effect (runAW - optional)</h3>
 Either snpEFF or Ensembl variant predictor annotation can be used.
 runAW will expect either of the following two lines at the top:
 <pre>
@@ -131,8 +131,7 @@ And will fail if neither are present. This tells runAW/buildAW what the file for
 <br>snpEff is available from //snpeff.sourceforge.net, and is very easy
 <br>to use if your genome sequence is known by it. 
 
-
-<h3>5. Gene (NCBI) Annotation (runAW - optional)</h3>
+<h3>Gene (NCBI) Annotation (runAW - optional)</h3>
 If your GTF file has "gene_name" that corresponds to LOCUS in Genbank, then you can add the
 <br>gene annotation. Go to NCBI, select database "Protein", search on your organism, then select
 <br>"Send to:", select File, select format GenPept. The lines the AW parser uses are, e.g.

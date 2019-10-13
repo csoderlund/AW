@@ -51,17 +51,17 @@ public class LogTime {
 	    return System.currentTimeMillis(); 
 	}	
 	static public void PrtDateMsg (String msg) { // start section
-	     Print("\n" + msg + " " + getDate());
+	     Print("\n" + msg + "         " + getDate());
 	}		
     static public void PrtDateMsgTime (String msg, long t) 
     {
-        Print(msg + " " + getDate() + " Elapse time " + getElapsedTimeStr(t));
+        Print(msg + "         " + getDate() + " Elapse time " + getElapsedTimeStr(t));
     }	
     static public void PrtSpMsgTime (int i, String msg, long t)
     {
     		String sp = "";
     		for (int j=0; j < i; j++) sp += "   ";
-    		String x = String.format("%s%-40s   %s", sp, msg, getElapsedTimeStr(t));
+    		String x = String.format("%s%-40s         %s", sp, msg, getElapsedTimeStr(t));
         Print(x);
     } 
     static public void PrtSpMsgTimeMem (int i, String msg, long t)

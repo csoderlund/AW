@@ -4,8 +4,8 @@ import java.awt.Color;
 
 public class Globals {
 	static final public String NAME = "AW";
-	static final public String VERSION = "v1.1";
-	static final public String VDATE = "(9 Sept 2019)";
+	static final public String VERSION = "v1.1.1";
+	static final public String VDATE = "(12 Oct 2019)";
 	static final public String DBprefix = "AW_";
 	static final public String TITLE = NAME + " (Allele Workbench) " + VERSION + " " + VDATE;
 
@@ -32,7 +32,7 @@ public class Globals {
 		return s;
 	}
 	static public String scoreStr(String ref, String alt) {
-		return  ref + "/(" + ref + "+" + alt + ")"; // CAS 1/25/15 extra parentesis
+		return  ref + "/(" + ref + "+" + alt + ")"; 
 	}
 	/*******************************************
 	 * for load
@@ -44,7 +44,6 @@ public class Globals {
 	static public final String ovFile = 		"overview";	
 	static public final String logFile = 	"log";
 	static public final String errorFile = 	"error.log";
-	
 	/*******************************************
 	 * for view
 	 */

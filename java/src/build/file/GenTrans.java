@@ -2,7 +2,6 @@ package build.file;
 /********************************************************
  * Create ref protein and alt protein sequences
  * Compute codon->codon, A->A, and function
- * 
  */
 import java.io.BufferedReader;
 import java.io.File;
@@ -59,33 +58,42 @@ public class GenTrans {
 	private boolean checkReverse=false; // for sequences without a good AA translation; made no difference for mouse
 	
 	public GenTrans(DBConn db, Cfg cf, String projDir) {
-		if (!cf.hasGenomeDir()) {
-			LogTime.PrtSpMsg(1, "No genome directory defined in AW.cfg file -- skipping step\n");
-			return;
-		}
-		cfg = cf;
-		mDB = db;
-	
-		Long startTime = LogTime.getTime();
+		try {
+			if (!cf.hasGenomeDir()) {
+				LogTime.PrtSpMsg(1, "No genome directory defined in AW.cfg file -- skipping step\n");
+				return;
+			}
+			cfg = cf;
+			mDB = db;
 		
-		String genomeDir = cfg.getGenomeDir();
-		Vector <String> chrFiles = cfg.getGenomeVec();
-		Vector <String> chrNums = new MetaData(mDB).getChr();
-		LogTime.PrtDateMsg("Create transcripts from  " + genomeDir);	
-		if (TEST || TESTCMP || TESTEFFECT) 
-			System.out.println("TEST=" + TEST + " CMP=" + TESTCMP + " EFFECT=" + TESTEFFECT);
+			LogTime.rClear();
+			Long startTime = LogTime.getTime();
+			LogTime.PrtDateMsg("Add genome sequence (create transcripts files)");	
+			
+			String genomeDir = cfg.getGenomeDir();
+			Vector <String> chrFiles = cfg.getGenomeVec();
+			Vector <String> chrNums = new MetaData(mDB).getChr();
+			LogTime.PrtSpMsg(1, "Read " + chrFiles.size() + " files from " + genomeDir);
 		
-		LogTime.rClear();
-		if (cfg.isEVP() || cfg.isSnpEFF()) {
-			hasEffect=true;
-			if (cfg.isEVP()) hasCDSpos=true;
-			else LogTime.PrtSpMsg(1, "Compute cDNApos (effects loaded from file)");
-		}
-		else LogTime.PrtSpMsg(1, "Compute cDNApos and effects");
-		
-		if (TESTEFFECT) hasEffect=false;
-	
-		try {	
+			String dir = Globals.projDir + "/" + projDir + "/" + outputDir;
+			File fdir = new File(dir);
+			if (!fdir.exists() || !fdir.isDirectory()) {
+				LogTime.PrtSpMsg(1, "Create output directory " + dir);
+				try {fdir.mkdir();} catch(Exception e) {ErrorReport.die("Cannot make " + fdir);}
+			}
+			LogTime.PrtSpMsg(1, "Write files to output directory " + dir);
+			
+			if (cfg.isEVP() || cfg.isSnpEFF()) {
+				hasEffect=true;
+				if (cfg.isEVP()) hasCDSpos=true;
+				else LogTime.PrtSpMsg(1, "Compute cDNApos (effects loaded from file)");
+			}
+			else LogTime.PrtSpMsg(1, "Compute cDNApos and effects");
+			
+			if (TESTEFFECT) hasEffect=false;
+			if (TEST || TESTCMP || TESTEFFECT) 
+				System.out.println("TEST=" + TEST + " CMP=" + TESTCMP + " EFFECT=" + TESTEFFECT);
+			
 			if (!hasEffect) {
 				mDB.executeUpdate("UPDATE trans set cntMissense=0, cntDamage=0, gtfRmk='', UTR5=0, UTR3=0," +
 				   		"refProLen=0, altProLen=0, nProDiff=0, ntLen=0");
@@ -105,23 +113,18 @@ public class GenTrans {
 					mDB.executeUpdate("UPDATE SNPtrans SET cDNApos=0, CDSpos=0");
 			}
 			
-			String dir = Globals.projDir + "/" + projDir + "/" + outputDir;
-			File fdir = new File(dir);
-			if (!fdir.exists() || !fdir.isDirectory()) {
-				LogTime.PrtSpMsg(1, "Create output directory " + dir);
-				try {fdir.mkdir();} catch(Exception e) {ErrorReport.die("Cannot make " + fdir);}
-			}
 			ntCDSFile = new BufferedWriter(new FileWriter(dir + "/" + ntCDSFileName, false));
 			ntRefFile = new BufferedWriter(new FileWriter(dir + "/" + ntRefFileName, false));
 			ntAltFile = new BufferedWriter(new FileWriter(dir + "/" + ntAltFileName, false));
 			aaRefFile = new BufferedWriter(new FileWriter(dir + "/" + aaRefFileName, false));
 			aaAltFile = new BufferedWriter(new FileWriter(dir + "/" + aaAltFileName, false));
 			int cnt=0;
+	
 			for (String file : chrFiles) {
 				String chr = getChr(file, chrNums);
 				if (chr==null || (TEST && chr.equals("X"))) continue;
 				cnt++;
-				LogTime.detail(cnt + ". Processing chr" + chr);
+				LogTime.PrtSpMsg(2, "File #" + cnt + " " + file + "                        ");
 				
 				readDB(chr);
 	
@@ -143,6 +146,7 @@ public class GenTrans {
 				transList = null; 	// restarts for each chromosome
 				System.gc();
 			}
+			
 			if (FULLRMK) {
 				LogTime.PrtSpMsg(1, "AA translation Trans:  Change frame: " + cntWrongFrame + 
 						" (Wrong start: " + cntWrongStart + ")  No translation: " + cntNoFrame);
@@ -154,9 +158,10 @@ public class GenTrans {
 			
 			ntRefFile.close(); ntAltFile.close(); ntCDSFile.close();
 			aaRefFile.close(); aaAltFile.close();
+			
+			LogTime.PrtSpMsgTimeMem(0, "Finish generate sequences", startTime);
 		}
-		catch (Exception e) {ErrorReport.prtError(e, "GenTrans");}
-		LogTime.PrtSpMsgTimeMem(0, "End generate sequences", startTime);
+		catch (Exception e) {ErrorReport.prtError(e, "Create Transcripts");}	
 	}
 
 	private String getChr(String file, Vector <String> chrNums) {
@@ -281,8 +286,7 @@ public class GenTrans {
 			LogTime.rClear();
 			if (TEST) LogTime.PrtSpMsg(3, "Lines: " + cntLine + " Trans: " + tIdx + "              ");
 		}
-		catch (Exception e) {
-			ErrorReport.die(e, "GenTrans: readChrFile");}
+		catch (Exception e) { ErrorReport.die(e, "GenTrans: readChrFile");}
 	}
 	 /*********************************************
 	  * Create alt sequences by inserting SNPs and Indels and update Alt Exons
@@ -337,7 +341,7 @@ public class GenTrans {
 		catch (Exception e) {ErrorReport.die(e, "GenTrans: create Alt sequence"); }
 	}
 	
-	 // NOTE: I haven't handled these cases and want to how ensembl handled
+	 // NOTE: I haven't handled these cases and want to know how ensembl handled
 	 // could an exon be lost? probably
 	private boolean createAltSeqExonCheck(String name, int varID, int pos, int diff, int start, int end) {
 		 boolean rc=true;
@@ -362,7 +366,7 @@ public class GenTrans {
 	* - strand is not reverse complemented until after splicing because exon coords are for positive strand
 	 */
 	private void createSpliceTrans(boolean isRef, BufferedWriter bw) {
-		LogTime.detail("4 Create spliced transcripts and shift Variants isRef=" + isRef);
+		LogTime.detail("4 Create spliced transcripts isRef=" + isRef);
 		int cntAppend=0;
 		try {
 			for (int tIdx=0; tIdx<transList.length; tIdx++) {

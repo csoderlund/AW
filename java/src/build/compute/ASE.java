@@ -48,7 +48,7 @@ public class ASE
 		updateSNP();
 		updateTrans();
 		updateGene();
-		LogTime.PrtSpMsgTime(0, "Complete pvalues", startTime);
+		LogTime.PrtSpMsgTime(0, "Finish pvalues", startTime);
 	}
 	public void snpASE()
 	{
@@ -130,7 +130,7 @@ public class ASE
 		
 			rs.close();
 			
-			LogTime.PrtSpMsg(2, "SNP/libs computed:" + numComputed + "  ASE:" + numASE + "  " +
+			LogTime.PrtSpMsg(2, "SNP/libs computed:" + numComputed + "   ASE:" + numASE + "   " +
 					odREMARK + " Reps:" + numDiffReps);
 		}
 		catch(Exception e){ErrorReport.prtError(e, "SNP ASE computation failed");}
@@ -257,10 +257,17 @@ public class ASE
 		
 			rs.close();
 			ps.executeBatch();
-			LogTime.PrtSpMsg(2, "Trans/libs computed:" + numComputed + "  SNP Coverage ASE:" + numASE + 
-					" " + odREMARK + "  Reps:" + numDiffReps);		
-			if (numASE2>0) LogTime.PrtSpMsg(2, 
-		"                      Read Count ASE: " + numASE2 + " " + odREMARK +" reps: " + numDiffReps2);		 
+			String msg = String.format("%22s %4d   %20s %4d  %s %5s %4d", 
+					 "Trans/libs computed: ", numComputed,
+					 "SNP Coverage ASE: ", numASE, odREMARK, "Reps: ", numDiffReps);
+			LogTime.PrtSpMsg(2, msg);
+			
+			if (numASE2>0) {
+				msg = String.format("%22s %4s   %20s %4d  %s %5s %4d", 
+					"", "",
+					"Read Count ASE:", numASE2, odREMARK, "Reps:", numDiffReps2);
+				LogTime.PrtSpMsg(2, msg);
+			}
 		}
 		catch(Exception e){ErrorReport.prtError(e, "ASE computation failed");}
 	}
@@ -272,7 +279,7 @@ public class ASE
 		
 		try
 		{	
-			LogTime.PrtSpMsg(1, "Computing Gene ASE...");
+			LogTime.PrtSpMsg(1, "Computing Gene ASE with minimum coverage " + MIN_COV);
 			mDB.executeUpdate("update geneLib set pvalue=" + NO_PVALUE + ", pvalue2=" + NO_PVALUE);
 			
 			int numToDo = mDB.executeCount("select count(*) from geneLib where repnum=0 and " +
@@ -302,7 +309,7 @@ public class ASE
 				int libid = rs.getInt(7);
 				int cntSNPcov = rs.getInt(8);
 
-				int total = refcount + altcount;
+				int total =  refcount  + altcount;
 				int total2 = refcount2 + altcount2;
 				
 				if (repnum == 0) // ASE pvalue
@@ -355,7 +362,7 @@ public class ASE
 				{
 					if (geneid != cur_gene || libid != cur_lib)
 					{
-						LogTime.warn("Gene Replicate with no repnum 0!");
+						LogTime.warn("Gene Replicate with no repnum 0 - gene: " + cur_gene + " lib - " + cur_lib);
 						continue;
 					}
 					double pvalue = chiRatio(cur_ratio, refcount, altcount);
@@ -384,9 +391,9 @@ public class ASE
 			if (numToUpload2 > 0) ps2.executeBatch();
 			rs.close();
 			
-			LogTime.PrtSpMsg(2, "Gene/libs computed: " + numComputed + "  SNP coverage ASE:" + numASE + 
-					" " + odREMARK + " reps:" + numDiffReps);		
-			if (numASE2>0) LogTime.PrtSpMsg(2, "Read Count ASE: " + numASE2 + " " + odREMARK +" reps: " + numDiffReps2);
+			LogTime.PrtSpMsg(2, "Gene/libs computed: " + numComputed + "   SNP coverage ASE:" + numASE + 
+					"   " + odREMARK + " reps:" + numDiffReps);		
+			if (numASE2>0) LogTime.PrtSpMsg(2, "Read Count ASE: " + numASE2 + "   " + odREMARK +" reps: " + numDiffReps2);
 		}
 		catch(Exception e){ErrorReport.prtError(e, "ASE computation failed");}
 	}
@@ -543,7 +550,7 @@ public class ASE
 	 */
 	private void updateSNP() {
 		try {
-			LogTime.PrtSpMsg(2, "Updating database with SNP replica '" + odREMARK + "' remarks");
+			LogTime.PrtSpMsg(2, "Updating database with SNP replicate '" + odREMARK + "' remarks");
 			mDB.executeUpdate("UPDATE SNP set remark='', cntLibAI=0");
 			
 			int cntSNP = mDB.executeCount("Select max(SNPid) from SNP");
@@ -575,7 +582,7 @@ public class ASE
 					cnt++;
 				}
 			}
-			LogTime.PrtSpMsg(2, "Updated SNPs:" + cnt );
+			LogTime.PrtSpMsg(3, "Updated SNPs: " + cnt );
 		}
 		catch (Exception e) {ErrorReport.die(e, "adding SNP remarks");}
 	}
@@ -623,7 +630,7 @@ public class ASE
 				if (tid%1000 == 0) 
 					LogTime.r("processed #" + tid + " " + cntAddTrSn + " " + cntAddTr);
 			}
-			LogTime.PrtSpMsg(2,  odSNP + " " + cntAddTrSn + " " + odREP + " " + cntAddTr + "      ");
+			LogTime.PrtSpMsg(3,  odSNP + ": " + cntAddTrSn + "    " + odREP + ": " + cntAddTr + "      ");
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "add Remarks");}
 	}
@@ -683,7 +690,7 @@ public class ASE
 				if (gid%1000 == 0) 
 					LogTime.r("processed #" + gid + " " + cntSNPAI);
 			}
-			LogTime.PrtSpMsg(2,  "Genes with at least 1 AI SNP: " + cntSNPAI + 	"                 ");
+			LogTime.PrtSpMsg(3,  "Genes with at least 1 AI SNP: " + cntSNPAI + 	"                 ");
 		}
 		catch (Exception e) {ErrorReport.prtError(e, "add Remarks");}
 	}

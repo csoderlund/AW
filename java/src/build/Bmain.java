@@ -82,6 +82,7 @@ public class Bmain {
 		
 		if (args.length==0) System.exit(0);
 		
+		/**
 		System.out.println("\nFor developments:");
 		System.out.println(" 1   Load Gene annotation");
 		System.out.println(" 2   Load Variants");
@@ -89,6 +90,7 @@ public class Bmain {
 		System.out.println(" 4   Load Variant Coverage");
 		System.out.println(" 9   Compute additional columns");
 		System.out.println("10   Overview");
+		**/
 		System.exit(0);
 	}
 	/****************************************************
@@ -123,7 +125,7 @@ public class Bmain {
 		if (action==0) {
 			LogTime.PrtDateMsg("+++Start building entire database+++");
 			// Order of these 4 is important. 
-			new Genes(mDB, cfg); 		LogTime.PrtSpMsg(0, "--Finish Step 1");
+			new Genes(mDB, cfg); 					LogTime.PrtSpMsg(0, "--Finish Step 1");
 			new Variants(hostCfg.renew(),cfg);		LogTime.PrtSpMsg(0, "--Finish Step 2"); 
 			new VarAnno(hostCfg.renew(), cfg);		LogTime.PrtSpMsg(0, "--Finish Step 3"); // may add cDNApos
 			new GenTrans(hostCfg.renew(), cfg, project); LogTime.PrtSpMsg(0, "--Finish Step 4"); 	// else add here
@@ -131,51 +133,47 @@ public class Bmain {
 			
 			new GeneAnno(hostCfg.renew(), cfg);		LogTime.PrtSpMsg(0, "--Finish Step 6");
 			if (cfg.hasExpDir()) 
-				{new GeneCov(hostCfg.renew(), cfg); LogTime.PrtSpMsg(0, "--Step 6b");} 
+				{new GeneCov(hostCfg.renew(), cfg); LogTime.PrtSpMsg(0, "--Finish Step 6b");} 
 			
 			new ASE(hostCfg.renew());				LogTime.PrtSpMsg(0, "--Finish Step 7"); 
 			new Compute(hostCfg.renew(), 0); 		LogTime.PrtSpMsg(0, "--Finish Step 8");
-			new Overview(hostCfg.renew(), logDir);	LogTime.PrtSpMsg(0, "--Finish Step 9"); 
 		}
 		// these only execute from buildAW (command line)
+		// 5-8 and >20 are documented on help
 		else if (action==1) new Genes(mDB, cfg);
 		else if (action==2) new Variants(mDB, cfg);	
 		else if (action==3) {
 			new GenTrans(mDB, cfg, project);
 			new Compute(mDB, 1); // missense summary
-			new Overview(mDB, logDir); 
 		}
 		else if (action==4) {
 			new VarCov(mDB,cfg, 0); 
 			new ASE(mDB);
 			new Compute(mDB, 3); // copy ref:alt to trans S: columns
-			new Overview(mDB, logDir);
 		}
+		
 		else if (action==5) {
 			new VarAnno(mDB, cfg);	
 			new Compute(mDB, 1); // missense summary
-			new Overview(mDB, logDir); 
 		}
 		else if (action==6) new GeneAnno(mDB, cfg);
-		
 		else if (action==7) new ASE(mDB);	
 		else if (action==8) { // add read counts
 			new GeneCov(mDB, cfg);
 			new ASE(mDB);
 			new Compute(mDB, 2); // copy ref:alt to trans R: columns
-			new Overview(mDB, logDir); 
 		}
 		else if (action==9) new Compute(mDB, 0); 
-		else if (action==10) new Overview(mDB, logDir);	
-		
 		else if (action>20) { // update trans/gene SNP coverage counts
 			Globals.READ_LEN = action;
 			new VarCov(mDB, cfg, 1);	
 			new ASE(mDB);
 			new Compute(mDB, 3); 	
-			new Overview(mDB, logDir); 
 		}
-		else if (action==12) Stats.prtStats(mDB);
+		else if (action==12) {
+			Stats.prtStats(mDB);
+			System.exit(0);
+		}
 		else if (action==16) {
 			new MakeDemo(mDB, cfg, 1); 
 			System.exit(0);
@@ -201,6 +199,8 @@ public class Bmain {
 				}
 			}
 			mDB.close(); // CASQ 7Sept19
+			
+			new Overview(hostCfg.renew(), logDir);	// CASZ 8Oct19 always do overview and do it here
 		}
 		catch (Exception e) {LogTime.PrtSpMsg(1, "ChgData not added");}
 		

@@ -34,15 +34,16 @@ public class GeneAnno {
 		}
 		catch (Exception e) {ErrorReport.die(e, "NCBI processing");}
 		if (!cfg.hasNCBIFile()) {
-			LogTime.PrtSpMsg(1, "No NCBI file defined in cfg file -- skipping step");
+			LogTime.PrtDateMsg("No NCBI file defined in cfg file -- skipping step");
 			return;
 		}
 		ncbiFile = cfg.getNCBI();
 		
 		long time = LogTime.getTime();
-		LogTime.PrtDateMsg("Loading NCBI annotation " + ncbiFile);
+		LogTime.PrtDateMsg("Add NCBI functional annotation ");
+		LogTime.PrtSpMsg(1, "File " + ncbiFile);
 		readFile();
-		LogTime.PrtSpMsgTime(1, "Finish loading NCBI annotation ", time);
+		LogTime.PrtSpMsgTime(0, "Finish loading NCBI annotation ", time);
 	}
 	
 	private void readFile () {

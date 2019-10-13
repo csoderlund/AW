@@ -1,3 +1,6 @@
-tar xvf classes_ext.tar.gz
-# Edit top line of Makefile for your JAVA_PATH
-make
+To make the aw.jar file:
+1. Edit the top line of Makefile to set your JAVA_PATH
+2. >tar xvf classes_ext.tar.gz
+3. >mkdir classes
+4. >mkdir jars
+5. >make

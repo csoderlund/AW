@@ -9,6 +9,7 @@
 	
 **Description:** The Allele Workbench (AW) is for the analysis of allele-specific expression. 
 The pipeline has been tested on Linux, and the Java code has been tested on Linux and MacOSX. 
+It does not work with MySQL V8.
 
 **The package contains:**
 

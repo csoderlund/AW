@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AW Tour</title>
+<style>
+	a:link {text-decoration: none;color:#6666CC;}
+	a.current {font-family:verdana; font-size:12px; color:white; text-decoration: none;}
+	a.white {font-family:verdana; font-size:12px; color:white; text-decoration: underline;}
+	a.ext {font-weight: bold;}
+	mark.white {font-family:verdana; font-size:12px; color:white;background:none;}
+	.ty    {border: 1px  solid black; border-spacing: 0px;  border-collapse: collapse;}
+    .ty td {border: 1px  solid black; padding: 3px; }
+	body {font-family: Verdana, Arial, Helvetica, sans-serif;  font-size: 14px; }
+</style>
+</head>
+
+<body>
+<a id="top"></a>
+<table style="width: 800px; border: 2px solid #999999; padding: 0; border-spacing:0; border-collapse:collapse; margin-left: auto; margin-right: auto;">
+	<tr><td>
+		<table style="width: 100%; border: 0px; padding: 0;  border-collapse:collapse;">
+			<tr>
+				<td style="text-align: left; vertical-align: top; padding: 0">
+					<a href="http://www.agcol.arizona.edu">
+						<img src="./img/agcol_logo.gif" alt="AGCoL" style="width: 180px; border:1px solid black"></a>
+				</td>
+				<td style="padding-bottom:5px; padding-left:40px; text-align: left;  font-family: Verdana, Arial; font-size: 20px; font-weight: bold;color:MidnightBlue">
+					AW Tour
+				</td>
+				<td style="text-align: right; vertical-align: top; padding: 0">
+					<a href="http://www.arizona.edu">
+						<img src="./img/UA.gif" alt="UA" title="University of Arizona"  style="width: 40px; border:1px solid black"></a>
+					<br>
+					<a href="http://www.bio5.org">
+						<img src="./img/bio5.gif" alt="BIO5" title="BIO5"  style="width: 40px; border:1px solid black"></a>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="text-align: left; vertical-align: top; padding: 0">
+				<table style="width: 100%; padding: 0;  border-spacing:0; border-collapse:collapse;">
+					<tr>
+						<td style="background-color: #666666; padding-bottom:4px;">
+						<a href="https://csoderlund.github.io/AW" class="white">AW Home</a> <mark class="white">|</mark>
+						<a href="https://github.com/csoderlund/AW/releases" class="white">Download</a> <mark class="white">|</mark>
+						<a href="./Docs.html" class="white">Docs</a> <mark class="white">|</mark>
+						<a href="./Tour.html" class="current">Tour</a>
+					</tr>
+				</table>
+				</td>
+			</tr>
+		</table>
+	</td></tr>
+
+	<tr><td style='vertical-align: top; text-align: left; padding:15px;'>
+	<!---- START BODY -->
+
+      <table style="margin-left: auto; margin-right: auto;">
+				<tr>
+
+					<td><a href="#runAW">
+					1. runAW and buildAW</a></td> <td>&nbsp;</td>
+
+					<td><a href="#overview">
+					2. viewAW Overview</a></td><td>&nbsp;</td>
+
+					<td><a href="#trans">
+					3. Transcripts</a></td><td>&nbsp;</td>
+
+					<td><a href="#vars">
+					4. Variants</a></td><td>&nbsp;</td>
+
+					<td><a href="#results">
+					5. Genes, Libs and Results</a></td><td>&nbsp;</td>
+
+				</tr>
+
+     </table>
+     <p><center><small>Double click any image below for a larger view.</small></center>
+
+
+<!------------ the rest is the 5th row and rest of document ------------------------->
+<tr><td>&nbsp;
+<tr><td>
+<!---------------------------- viewSingleTCW ----------------------------->
+
+<a id="runAW"></a>
+<h2>1. runAW and buildAW</h2>
+
+<table>
+<tr><td><a  href="img/runAW.png"><img src="img/runAW.png" alt="" style="border: 1px solid black; width: 500px"></a>
+<td>
+
+"runAW" creates a configuration file for the project. The "buildAW" program
+can be run using the "Build" button, or from the command line.
+buildAW checks all files and if they exist and are the right format, it builds the database.
+<p>From the command line only, buildAW can be used to add or update the optional data.
+</table>
+<p>
+
+<!--------------------- Overview ------------------------->
+<a id="overview"></a>
+<h2>2. viewAW Overview</h2>
+
+<table>
+<tr><td>
+<a  href="img/overview.png"><img src="img/overview.png" alt="" style="border: 1px solid black; width: 800px"></a>
+<tr><td>
+<font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The text in upper right indicates that the variant effects were loaded from an EVP (Ensembl Variant Predictor, McLaren et al. 2010)
+file, the optional NCBI annotations were loaded, and the optional read counts were loaded.
+If neither the EVP or snpEFF (Cingolani et al. 2012) effects are loaded, "buildAW" will add a subset of the effects (e.g. missense).
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The line starting with Opposite Direction (OD, i.e. having both ref&gt;alt and alt&gt;ref) indicates the number of SNPs and transcripts with replica counts that were significantly in OD,
+and the number of transcripts that have at least two significant AI SNPs (p&lt;0.05) in OD.</font>
+</table>
+<p>
+<!--------------------- transcripts ------------------------->
+<a id="trans"></a>
+
+<h2>3. Transcripts</h2>
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Trans Query</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+
+<table>
+<tr><td>
+<a  href="img/transQuery.png">
+<img src="img/transQuery.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+This query will show the best transcript per gene (based on number of reads),
+where there is at least one missense SNP, and both SNP coverage and read count are AI (p&lt;0.01) for both
+liver and kidney.
+<p>SNP coverage refers to the summed values of the SNP coverage.
+<br>Read counts are computed by using all reads and only maps
+a given read to one transcript using the variants and isoform. By default, the AW pipeline
+uses eXpress (Roberts and Pachter 2013) for the assignment.</font>
+</table>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Trans Table</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/transTable.png">
+<img src="img/transTable.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+This table was produced by the above Query.
+#SNPCov is the number of SNPs with &gt;=20 coverage for at least one library.
+#SNPAI is the number of SNPs with AI p&lt;0.05 for at least one library.
+#Mis is the number of missense SNPs.
+SpNYfKid and SpNYfLiv are the SNP coverage AI p-values.
+RpNYfKid and RpNYfLiv are the read count AI p-values.</font>
+</table>
+
+<p>Column can be turned on/off in the bottom panel where checking or unchecking a column has immediate effect.
+The panel can be closed with "Hide" to see more of the table. Columns can be moved and sorted.
+
+<p>For the selected transcript(s):
+<table class="ty">
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+<i>Button</i><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+<i>Action</i>
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Libs
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Shows a different view of the libraries from which the replicas can be viewed
+See the "Libraries and Replicas" section below.
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Variants
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Shows the variants for the transcript.
+See the "Variant"  section below.
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Exon
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Shows the exons for the transcript. See the "Exon" section below.
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Draw
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Draws the gene for the transcript, which includes all gene isoforms and variants.
+See the "Draw" section below.
+
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Align
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Pops-up a window of the alignment of the reference and alternative protein sequences.
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Export
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Has a pop-up window that allows the user to choose between exporting the table, or the
+sequences of the selected transcripts, or the alignment of the selected transcipts.
+<tr><td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Copy Trans</font>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Copies to the clipboard the transcript name, which can be pasted elsewhere; by right clicking,
+it toggles to "Copy Identifier" for copy.</font>
+</table>
+<p>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Library and Replicas</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+	<table>
+		<tr>
+		<td><a  href="img/transLibList.png">
+		<img src="img/transLibList.png" alt="" style="border: 1px solid black; width: 500px"></a>
+		<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+		The summed SNP coverage values and their p-value are
+		shown by library.</font>
+	</table>
+	This information can also be viewed in the Trans table, e.g. SNP Ratio, SNP Pval.
+	<table>
+		<tr>
+		<td><a  href="img/transLibListRep.png">
+		<img src="img/transLibListRep.png" alt="" style="border: 1px solid black; width: 600px"></a>
+		<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+		By selecting the NYfLiv and NYfKid rows in the "Trans Libs" table followed by the "Replica" button,
+		the replica values are shown.</font>
+	</table>
+	The "SNP Rep" column has a p-value for any row where the replicas are significantly in the
+opposite direction (OD) from the other replicas in its library, similarity for "Read Rep".
+
+<br>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Exons</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/transExons.png">
+<img src="img/transExons.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The "!CDS" indicates a non-coding exon. The Rstart and Rend columns are relative to the start of the transcript.</font>
+</table>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Variants</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/transVars.png">
+<img src="img/transVars.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The columns starting with "S:" provides the ref:alt counts and columns starting with "Sp" are the SNP coverage p-values.
+<p>In the "Basic Selection" of the Column panel, the last two rows of columns are specific to the transcript.</font>
+</table>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Draw gene for transcript</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a href="img/transDraw.png"><img src="img/transDraw.png" alt="" style="border: 1px solid black; width: 600px"></a>
+
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Ex 1. The vertical lines are the SNPs where an '*' indicates p-value&lt;0.05 for at least one library.
+Rectangles are exons, where black are non-coding.</font>
+<tr><td>
+<a  href="img/transDraw2.png">
+<img src="img/transDraw2.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Ex 2. The coding exons are color coded where
+exons in a stack are the same color if they have the same coordinates, else they have different colors, e.g.
+the exons to the right of the SNP labelled '3*' has three different colors so its 3 distinct exons.</font>
+</table>
+
+
+<p>
+<a id="vars"></a>
+<h2>4. Variants</h2>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Variant Query</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/varQuery.png">
+<img src="img/varQuery.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+
+<p>This set of filters will display all missense SNPs with AI p&lt;0.01 for libraries NYfLiv and NYfKid.
+<br>The coverage&lt;=20 is also set, but is redundant because a SNP will not have a p-value if it does not have
+coverage&lt;=20.</font>
+</table>
+<p>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Variant Table</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/varTable.png">
+<img src="img/varTable.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+In the Columns panel, the "effectList" are the effects (e.g. missense) for all transcripts containing the gene.
+<br>The #LibCov is the number of libraries that have SNP coverage &gt;=20 for at least one library.
+<br>The #LibAI is the number of AI(p&lt;0.05) libraries.</font>
+</table>
+<p>The following are tables produced by selecting one or more rows following by the approproiate button at the top.
+<p>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Trans for Variant vs Variant by Trans</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/varTrans.png">
+<img src="img/varTrans.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Trans Table showing the transcripts that contain the variants.
+<br>Most reads were assigned to the second two transcript isoforms of the gene, which
+is why the first one has very few reads assigned to it.</font>
+<tr><td>
+<a  href="img/varVar.png">
+<img src="img/varVar.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Variant table showing the selected variant by transcript.
+<br>The middle columns vary per transcript but the SNP coverages stay the same.</font>
+</table>
+<p>
+
+<a id="results"></a>
+
+<h2>6. Genes, Libraries and Results</h2>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Genes</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+
+<table>
+<tr><td>
+<a  href="img/geneQuery.png">
+<img src="img/geneQuery.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The gene query is not very extensive since there is an extensive transcript query.
+<p>The gene coordinates are the furthest left and right isoform coordinate, it contains all variants
+within those boundaries, and its read counts are the summed counts of all transcripts.</font>
+<tr><td>
+<a  href="img/geneTable.png">
+<img src="img/geneTable.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+The gene table is useful to drill down from gene to transcripts.</font>
+</table>
+<p>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Libraries</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<table>
+<tr><td>
+<a  href="img/libTable.png">
+<img src="img/libTable.png" alt="" style="border: 1px solid black; width: 600px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+There is no special queries for libraries. This is the full library table which shows totals.</font>
+</table>
+<table>
+<tr><td>
+<a href="img/libTrans.png"><img src="img/libTrans.png" alt="" style="border: 1px solid black; width: 400px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+For the selected library "NYfBr", the Trans Libs table shows the library values for all transcripts.</font>
+<tr><td>
+<a  href="img/libRep.png">
+<img src="img/libRep.png" alt="" style="border: 1px solid black; width: 400px"></a>
+<td><font face="Verdana, Arial, Helvetica, sans-serif"  size="2">
+Selecting one or more transcripts, the Trans Rep Libs table shows the replicas for them.</font>
+</table>
+<p>
+
+<table style="width: 95%"><tr><td style="text-align: left">
+<h4>Results</h4>
+<td style="text-align: right"><a href="#top">Go to top</a></td></tr></table>
+
+<a  href="img/Results.png">
+<img src="img/Results.png" alt="" style="border: 1px solid black; width: 800px"></a>
+
+<p>Tabs for all generated results are shown on the left with a Name. Selecting a tab shows the results on the right.
+Any tab can be removed from the left panel by clicking the 'x' beside it, however, parent tabs (e.g. Trans Q2)
+cannot be removed until its childern (indented beneath parent) have been removed.
+<p>Alternatively, the ">Results" can be selected to show the list of results along with their description. Selected results can be
+removed, or all results can be removed.
+<p>For Type="Trans" only, two trans tables can be selected to invoke their union, intersect, 1st Only or 2nd Only
+to produce a new table.
+
+<p><a href="#top">Go to top</a>
+<!---- END BODY -->
+	</td></tr>
+	<tr><td style="background-color: #DDDDDD; text-align: center; padding: 0; font-family: Verdana, Arial; font-size: 12px;">
+                        Email Comments To: <a href="mailto:tcw@agcol.arizona.edu">tcw@agcol.arizona.edu</a>
+
+</td></tr>
+</table>
+</body>
+</html>

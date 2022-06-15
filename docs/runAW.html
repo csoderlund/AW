@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AW runAW</title>
+<style>
+	a:link {text-decoration: none;color:#6666CC;}
+	a.current {font-family:verdana; font-size:12px; color:white; text-decoration: none;}
+	a.white {font-family:verdana; font-size:12px; color:white; text-decoration: underline;}
+	a.ext {font-weight: bold;}
+	mark.white {font-family:verdana; font-size:12px; color:white;background:none;}
+	tt {font-size:13px}
+	pre {font-size:13px}
+	body {font-family: Verdana, Arial, Helvetica, sans-serif;  font-size: 14px; }
+</style>
+</head>
+
+<body>
+<a id="top"></a>
+<table style="width: 800px; border: 2px solid #999999; padding: 0; border-spacing:0; border-collapse:collapse; margin-left: auto; margin-right: auto;">
+	<tr><td>
+		<table style="width: 100%; border: 0px; padding: 0;  border-collapse:collapse;">
+			<tr>
+				<td style="text-align: left; vertical-align: top; padding: 0">
+					<a href="http://www.agcol.arizona.edu">
+						<img src="./img/agcol_logo.gif" alt="AGCoL" style="width: 180px; border:1px solid black"></a>
+				</td>
+				<td style="padding-bottom:5px; padding-left:40px; text-align: left;  font-family: Verdana, Arial; font-size: 20px; font-weight: bold;color:MidnightBlue">
+					AW - runAW
+				</td>
+				<td style="text-align: right; vertical-align: top; padding: 0">
+					<a href="http://www.arizona.edu">
+						<img src="./img/UA.gif" alt="UA" title="University of Arizona"  style="width: 40px; border:1px solid black"></a>
+					<br>
+					<a href="http://www.bio5.org">
+						<img src="./img/bio5.gif" alt="BIO5" title="BIO5"  style="width: 40px; border:1px solid black"></a>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="text-align: left; vertical-align: top; padding: 0">
+				<table style="width: 100%; padding: 0;  border-spacing:0; border-collapse:collapse;">
+					<tr>
+						<td style="background-color: #666666; padding-bottom:4px;">
+						<a href="https://csoderlund.github.io/AW" class="white">AW Home</a> <mark class="white">|</mark>
+						<a href="https://github.com/csoderlund/AW/releases" class="white">Download</a> <mark class="white">|</mark>
+						<a href="./Docs.html" class="white">Docs</a> <mark class="white">|</mark>
+						<a href="./Tour.html" class="white">Tour</a>
+					</tr>
+				</table>
+				</td>
+			</tr>
+		</table>
+	</td></tr>
+
+	<tr><td style='vertical-align: top; text-align: left; padding:15px;'>
+	<!---- START BODY -->
+
+<h4>Run Demo</h4>
+<ol>
+<li>Edit HOSTS.cfg to enter the mysql userid (<tt>user=</tt>) and password (<tt>password=</tt>).
+Changing 'host=localhost' has no effect as it only works with localhost.
+<li>Run "./runAW".
+<li>Press "Select a project", which will show you "demo"; select it.
+<li>Go to bottom of window and press "Build". You will be prompted in the terminal window
+to answer one or more  questions.
+<li>The expected output is shown at the bottom of this webpage.
+</ol>
+<h4>To create the AW database</h4>
+<ol>
+<li>Edit HOSTS.cfg to enter the mysql userid and password.
+Changing 'host=localhost' has no effect as it only works with localhost.
+<li>Run "./runAW".
+<li>Press "Create" and you will be prompted for a project name. This will create a directory
+<br>under "/projects", where it will write the AW.cfg configuration file.
+<li>Fill out all sections, where everything is required except those entries with (Optional).
+<li>Either press "Build" at the bottom of the window.
+<br>Or "Save", exit, and run "./buildAW &lt;project name&gt;",
+<br>Either way, you will need to answer one or more questions at the terminal prompt.
+</ol>
+This builds the database and creates a directory "AW_output" under the "project/&lt;project name&gt;"
+<br>which contains ntRef.fa and ntAlt.fa, which can be used as input to the <tt>transASE.pl</tt> script.
+
+<h4>To update the AW database</h4>
+<ol>
+<li>Make any changes to the input files using <tt>runAW</tt>, then save and exit.
+<li>Execute <tt>./buildAW</tt> with project_name and option.
+<br>To view options, execute <tt>./buildAW</tt> with no parameters, or see below.
+</ol>
+
+<h4>Information on input</h4>
+Details of the file formats are given in the <a href=Files.html class="ext" target="_blanks">Files</a> documentation.
+<p><i><b>Important:</b></i> The naming of the input files must agree with the abbreviations
+<br>for Condition #1 and optional Condition #2. This is explained in the Files document.
+
+<p><i>Variant Files</i>
+<ol>
+<li>The variant file(s) and variant annotation file(s) may be the same.
+<li>The variant count files should be created with the AW pipeline as the naming of the
+files is important.
+<li>The variant effect file may be made with snpEff (very easy to use)
+<br>or the Ensembl Variant Predictor website. If no effect input is supplied,
+<br>the <tt>buildAW</tt> will compute the effects missense, synonymous, UTR5 and UTR3.
+</ol>
+
+<p><i>Reference Genome</i>
+<ol>
+<li>This is used to create transcripts, which are loaded into the database and written to file.
+<li>The sequenced genome must be split into chromosome files, prefixed by "chrN"
+<br>where N is the number or X or Y. (The prefix does not have to be "chr", as long as whatever
+<br>is used is consistently used).
+</ol>
+
+<h4>buildAW</h4>
+<pre>
+buildAW &lt;project&gt; [optional action]
+   Read projects/&lt;project&gt;/AW.cfg for the parameters.
+   The database is AW_&lt;project&gt;
+
+Load all (no action)
+   Load GTK genes and trans (GTK)
+   Load Variants (VCF)
+   Compute transcripts and proteins (genome sequence)
+   Load Variant coverage (BED)
+
+Plus the following actions 5-8, which can also be run separately
+To run separately, add the necessary file information to runAW, save, then run buildAW
+
+Action  Description
+5   Load Variant effects (Ensembl Variant Predictor or snpEFF)
+6   Load Gene NCBI descriptions (Genbank)
+7   Compute AI=allele imbalance
+
+8   Load Transcript counts (.xprs)
+    This is typically run separately since it needs the transcripts,
+    which are output during the database build,
+    but the trans counts will load during build if available.
+
+N   (where N>20) Compute transcript coverage with read size=N
+    by default, it uses 100 during the addition of variant coverage
+</pre>
+
+<h4>Demo output</h4>
+<pre>
+Read projects/demo/AW.cfg         13-Oct-19 07:03:28
+> Condition1 Strain
+      Strain: Young_hybrid NYf        yes
+> Condition2 Tissue
+      Tissue: Brain      Br
+      Tissue: Muscle     Mus
+> Files
+      Variants     demo/variants
+      VariantCov   demo/SNPCOV/Results
+      VariantAnno  demo/snpEFF.chr19.vcf
+      GTF          demo/annotation/chr19.gtf
+      Genome       demo/genome
+      NCBI         demo/NCBI_demo.gb
+      TransCnt     demo/EXPRESS/Results
+Successful load of AW.cfg
+   Loading schema database
+   Validate abbreviations
+      Conditions: NYf:Br   NYf:Mus
+   Checking files and directories
+      Variant call directory demo/variants
+         chr19.exon.snps.vcf
+      Variant coverage directory demo/SNPCOV/Results
+         Number of reps per library:
+            NYfBr:2      NYfMus:2
+         Good bed files 4
+      One Variant effect file
+         Variant file demo/snpEFF.chr19.vcf
+            SnpEFF file (SnpEffVersion)
+      Genome annotation file demo/annotation/chr19.gtf
+         Seqname prefix is 'chr'
+      Genome sequence directory demo/genome
+         Files found 1
+      Transcript count directory demo/EXPRESS/Results
+         Number of reps per library:
+            NYfBr:2      NYfMus:2
+   Load library and metadata into database
+
++++Start building entire database+++         13-Oct-19 07:03:35
+
+Add genome annotation (genes/trans)         13-Oct-19 07:03:35
+   File demo/annotation/chr19.gtf
+   GTF file is probably from Ensembl
+      Read: 32642   Genes: 719   Trans: 1351
+      Dup gene: 1   Pos strand: 363   Neg strand: 356
+Finish loading gene and transcript coordinates          0m:3s
+--Finish Step 1
+
+Add variant calls to database         13-Oct-19 07:03:39
+   File#1 /Users/cari_ann/Workspace/dev/AW_1_1/demo/variants/chr19.exon.snps.vcf
+      Read: 2445   Variants: 2445  In Exon: 3878   New SNP: 234   New Indel: 28
+      Genes with variants: 337   Gene-variant pairs: 2449
+      Trans with variants: 544   Tran-variant pairs: 3878
+      chr: 19:2445
+   Update counts for Exons, Trans and Genes
+      Update Genes: 337  Trans: 544  Exons: 1441
+Finish adding variants                            0m:8s
+--Finish Step 2
+
+Add snpEFF variant effects         13-Oct-19 07:03:48
+   File #1 /Users/cari_ann/Workspace/dev/AW_1_1/demo/snpEFF.chr19.vcf
+      Update SNP-trans: 3933
+      Skipped SNPs: 112420   Skipped Trans: 4008
+   Update mySQL Variant tables
+      Added descriptions: 2442
+Finish adding variant annotation                  0m:4s
+--Finish Step 3
+
+Add genome sequence (create transcripts files)         13-Oct-19 07:03:53
+   Read 1 files from demo/genome
+   Create output directory projects/demo/AW_output
+   Write files to output directory projects/demo/AW_output
+   Compute cDNApos (effects loaded from file)
+      File #1 chr19.fa
+      Sequences added: 3246   Update trans: 1351
+      No start_codon: 82   No end_codon: 173
+      Add exon remarks: 5353   Write aaRef: 1351
+Finish generate sequences                    0m:21s  (264M)
+--Finish Step 4
+
+Add variant coverage          13-Oct-19 07:04:14
+   Load 4 files from demo/SNPCOV/Results
+   Add heterozygous SNP counts per library
+      File #1 NYfBr1.bed
+         Read:1383    Add:1383
+      File #2 NYfBr3.bed
+         Read:1291    Add:1291
+      File #3 NYfMus1.bed
+         Read:1015    Add:1015
+      File #4 NYfMus2.bed
+         Read:1022    Add:1022
+      Add total variants: 4711  (Max Reps: 2)           0m:2s
+   Sum ref/alt SNP coverage from replicates for 2 libraries and 2445 SNPs
+      Add to SNP Lib: 2754                              0m:3s
+   Sum ref/alt for gene coverage
+      Read Genes: 719    With variants: 337
+      Add to Gene Lib: 1482                             0m:2s
+   Mark SNP clusters to count reads once using radius=50
+
+Update mySQL tables         13-Oct-19 07:04:27
+   Add distances between variants
+      Trans with &gt;0 variants: 544
+      SNPs distance&lt;50: 1306(39%)
+Finish computations                               0m:1s
+      Excluded SNP/trans pairs for summing of counts: 1046(26%)
+   Sum ref/alt to transLib
+      Read Trans: 1351   With variants: 544
+      Add to Trans Lib: 2517                            0m:2s
+Finish variant postprocess                        0m:18s
+--Finish Step 5
+
+Add NCBI functional annotation          13-Oct-19 07:04:32
+   File demo/NCBI_demo.gb
+      Found: 2016  Entered: 2016   Not found: 0
+Finish loading NCBI annotation                    0m:2s
+--Finish Step 6
+
+Add transcript counts         13-Oct-19 07:04:35
+   Load 4 files from demo/EXPRESS/Results
+   Loading information from database
+      Libs: 2  Trans: 1351  TransLib: 875
+      File #1 NYfBr1.xprs
+      File #2 NYfBr3.xprs
+      File #3 NYfMus1.xprs
+      File #4 NYfMus2.xprs
+      Total loaded: 5404  Added: 1827
+   Counts added, now updating gene information
+      Add gene lib: 998
+      Update gene lib: 2402
+Finish loading transcript counts                  0m:8s
+--Finish Step 6b
+
+Computing pvalues         13-Oct-19 07:04:43
+   Computing SNP ASE...
+      SNP/libs computed:850   ASE:201   Opposite Direction Reps:0
+   Computing Trans ASE...
+       Trans/libs computed:   674     SNP Coverage ASE:   112  Opposite Direction Reps:     3
+                                         Read Count ASE:  277  Opposite Direction Reps:   47
+   Computing Gene ASE with minimum coverage 20
+      Gene/libs computed: 445   SNP coverage ASE:69   Opposite Direction reps:2
+      Read Count ASE: 230   Opposite Direction reps: 38
+      Updating database with dynamic SNP columns
+      Updating database with trans dynamic columns
+      Updating database with gene dynamic columns
+      Updating database with SNP replicate 'Opposite Direction' remarks
+         Updated SNPs: 184
+      Updating database with trans 'Opposite Direction' remarks
+         odSNP: 21    odRep: 141
+      Updating database with gene with SNP AI count
+         Genes with at least 1 AI SNP: 82
+Finish pvalues                                    0m:4s
+--Finish Step 7
+
+Update mySQL tables         13-Oct-19 07:04:48
+   Add ref/alt information to main tables
+      SNPs counts to SNP  : 1672
+      SNPs counts to gene : 286
+      SNPs counts to trans: 478
+      Read counts to gene : 295
+      Read counts to trans: 456
+   Compute best trans per gene
+      Rank=1: 299                                       0m:0s
+   Add counts for missense and damaged/high SNP
+      Updated SNPs: 343
+   Add missense et al counts to transcripts
+      Trans Missense SNPs: 559   Damaging: 0
+   Add missense et al counts to genes
+      Gene with missense SNPs: 145
+   Add distances between variants
+      Trans with &gt;0 variants: 544
+      SNPs distance&lt; 50: 1306(39%)
+   Add library sizes
+Finish computations                               0m:5s
+--Finish Step 8
+
+Creating overview and writing to projects/demo/log/overview         13-Oct-19 07:04:53
+   Make Totals
+      Genes:    719  With SNPs:    336  With Indel:     30
+      Trans:   1351  With SNPs:    541  With Indel:     44  AI: 97   [AI=Allele Imbalance (p&lt;0.05)]
+       SNPs:   2414     Coding:    983   Cov(&gt;=20):    661  AI: 184  Lib Cov: 849  Lib AI: 201
+      InDel:     31     Coding:     13
+   Make Pvalue tables
+   Make SNP coverage table
+   Add files
+   Total size of rep libraries will only be written to projects/demo/log/overview
+      Make Replicate count table
+Complete overview                                 0m:1s
+
+++++++ Complete build AW_demo         13-Oct-19 07:04:55 Elapse time  1m:26s
+
+</pre>
+
+	<!---- END BODY -->
+	</td></tr>
+	<tr><td style="background-color: #DDDDDD; text-align: center; padding: 0; font-family: Verdana, Arial; font-size: 12px;">
+                        Email Comments To: <a href="mailto:tcw@agcol.arizona.edu">tcw@agcol.arizona.edu</a>
+
+</td></tr>
+</table>
+</body>
+</html>

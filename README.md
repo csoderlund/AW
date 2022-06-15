@@ -1,16 +1,19 @@
-**Download tar files and demo files:** www.agcol.arizona.edu/software/AW or from [from this site](https://github.com/csoderlund/AW/releases)
+**Description:** The Allele Workbench (AW) is for the analysis of allele-specific expression.
 
-**Documentation:** www.agcol.arizona.edu/software/AW
+**Download Pipeline.tar.gz:** http://www.agcol.arizona.edu/software/aw.
+	This contains the pipeline perl scripts, external programs and pipeline demo files.
+
+**Download AW_1_1.tar.gz:** https://github.com/csoderlund/AW/releases.
+	This contains the Java code and interface demo files.
+
+**Documentation:** https://csoderlund.github.io/AW.
 
 **Requirements:** Perl for the pipeline. Java and MySQL to build the database and view the results.
+	The pipeline has been tested on Linux, and the Java code has been tested on Linux and MacOS.
 
 **Reference:** C. Soderlund, W. Nelson, and S. Goff. (2014) Allele Workbench: transcriptome pipeline 
-	and interactive graphics for allele specific expression. PLoS ONE
+and interactive graphics for allele specific expression. PLoS ONE
 	
-**Description:** The Allele Workbench (AW) is for the analysis of allele-specific expression. 
-The pipeline has been tested on Linux, and the Java code has been tested on Linux and MacOSX. 
-It does not work with MySQL V8.
-
 **The package contains:**
 
 Pipeline specific to F1 hybrid (inbred) RNA-seq data.
@@ -33,4 +36,4 @@ runAW is a Java interface to build the database.
 
 viewAW is a Java interface to query view the results. 
 
-**Release v1.1 beta:** (1) Improved error catching and trace output. (2) Speedups. (3) Runs with MariaDB v10.4.7.
+

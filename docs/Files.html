@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AW Files</title>
+<style>
+	a:link {text-decoration: none;color:#6666CC;}
+	a.current {font-family:verdana; font-size:12px; color:white; text-decoration: none;}
+	a.white {font-family:verdana; font-size:12px; color:white; text-decoration: underline;}
+	a.ext {font-weight: bold;}
+	mark.white {font-family:verdana; font-size:12px; color:white;background:none;}
+	tt {font-size:13px}
+	pre {font-size:13px}
+	.ty    {border: 1px  solid black; border-spacing: 0px;  border-collapse: collapse;}
+    .ty td {border: 1px  solid black; padding: 3px; }
+	body {font-family: Verdana, Arial, Helvetica, sans-serif;  font-size: 14px; }
+</style>
+</head>
+
+<body>
+<a id="top"></a>
+<table style="width: 800px; border: 2px solid #999999; padding: 0; border-spacing:0; border-collapse:collapse; margin-left: auto; margin-right: auto;">
+	<tr><td>
+		<table style="width: 100%; border: 0px; padding: 0;  border-collapse:collapse;">
+			<tr>
+				<td style="text-align: left; vertical-align: top; padding: 0">
+					<a href="http://www.agcol.arizona.edu">
+						<img src="./img/agcol_logo.gif" alt="AGCoL" style="width: 180px; border:1px solid black"></a>
+				</td>
+				<td style="padding-bottom:5px; padding-left:40px; text-align: left;  font-family: Verdana, Arial; font-size: 20px; font-weight: bold;color:MidnightBlue">
+					AW Files
+				</td>
+				<td style="text-align: right; vertical-align: top; padding: 0">
+					<a href="http://www.arizona.edu">
+						<img src="./img/UA.gif" alt="UA" title="University of Arizona"  style="width: 40px; border:1px solid black"></a>
+					<br>
+					<a href="http://www.bio5.org">
+						<img src="./img/bio5.gif" alt="BIO5" title="BIO5"  style="width: 40px; border:1px solid black"></a>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="text-align: left; vertical-align: top; padding: 0">
+				<table style="width: 100%; padding: 0;  border-spacing:0; border-collapse:collapse;">
+					<tr>
+						<td style="background-color: #666666; padding-bottom:4px;">
+						<a href="https://csoderlund.github.io/AW" class="white">AW Home</a> <mark class="white">|</mark>
+						<a href="https://github.com/csoderlund/AW/releases" class="white">Download</a> <mark class="white">|</mark>
+						<a href="./Docs.html" class="white">Docs</a> <mark class="white">|</mark>
+						<a href="./Tour.html" class="white">Tour</a>
+					</tr>
+				</table>
+				</td>
+			</tr>
+		</table>
+	</td></tr>
+
+	<tr><td style='vertical-align: top; text-align: left; padding:15px;'>
+	<!---- START BODY -->
+
+<h3>1. Raw reads (pipeline only)</h3>
+<i><b>The naming is very important</b></i>, as the <tt>runAW</tt> software uses the name to decode the
+<br>conditions and replicates. The AW allows one or two conditions, which you will define in
+<br>the runAW program that builds the database. The runAW has a table for each condition,
+<br>where it asks for the name and abbreviation. The best way to explain is with an example:
+<p>Say there were two inbred parents and a hybrid, where the transcriptome was extracted
+<br>from the root and leaves with two replicates; there would be 6 libraries and 12 samples.
+<p>Condition #1
+<table class="ty">
+<tr><td>Name<td>Abbr<td>isHybrid
+<tr><td>R9308<td>R9<td>no
+<tr><td>Xieqingzao B<td>Xz<td>no
+<tr><td>Xieyou 9308<td>X9<td>yes
+</table>
+<br>Condition #2
+<table class="ty">
+<tr><td>Name<td>Abbr
+<tr><td>Root<td>Rt
+<tr><td>Leaf<td>Lf
+</table>
+
+<p>
+If you start with unpaired raw read files as follows (for pairing see below):
+<pre>
+R9Rt1.fq, R9Rt2.fq, R9Lf1.fq, R9Lf2.fq
+XzRt1.fq, XzRt2.fq, XzLf1.fq, XzLf2.fq
+X9Rt1.fq, X9Rt2.fq, X9Lf1.fq, X9Lf2.fq
+</pre>
+The names will be preserved through the AW pipeline, resulting in the heterogyzous SNP files,
+<br>which are input to runAW. They will be named:
+<pre>
+R9Rt1.bed, R9Rt2.bed, R9Lf1.bed, R9Lf2.bed
+XzRt1.bed, XzRt2.bed, XzLf1.bed, XzLf2.bed
+X9Rt1.bed, X9Rt2.bed, X9Lf1.bed, X9Lf2.bed
+</pre>
+Rules:
+<ol>
+<li>The first condition must be the first part of the file name, the second part must be
+the second condition (if it exists) and the replicate number must be last.
+<li>There can be '-', '_' between the conditions and replicate number, e.g. R9_Rt_1.fq,
+but no other characters are allowed.
+<li>The abbreviations must be EXACTLY like you have entered into runAW interface.
+If necessary, rename  your files -- it does not take long.
+<li>If you have a 3rd condition, just merge two conditions, e.g.
+<br>Infected root-&gt;iRT, uninfected root-&gt;Rt, infected leaf-&gt;iLf, uninfected leaf-&gt;Lf.
+<li>The input file to AW must end with the suffix ".bed".
+<br>Anything from the first "." to the end is removed before parsing for the library name
+and replicate number (e.g. X9Rt1.ase.bed, the "ase.bed" will be removed.)
+<li>If there are no replicates, then it is okay for none of the files to have replica numbers.
+<li>To indicate pairing, add suffixes "_R1","_R2", e.g. "R9Rt1_R1.fq". (You can use other
+suffixes too; see the Pipeline documentation)
+</ol>
+
+
+<h3>2. Genome Annotation GTF file</h3>
+
+This file must be formated according to http://mblab.wustl.edu/GTF22.html.
+<br>The AW parser works well with the Ensembl files; if you are using a GTF other than Ensembl,
+<br>you may need to rename some keywords.
+<p>The GTF file must have 8 columns, where the following are required:
+
+<p>1st column: Seqname
+<ul>
+<li>This is generally the chromosome or contig.
+<li>AW determines the "root" of the seqname, where it must be followed by a number, e.g. chr1 the root is "chr",
+or contig1 the root is "contig".
+<li>As long as there are entries with this format, then it also accepts chrX, chrY, etc.
+<li>All other input files that specify a seqname must use the same root or identify the
+seq without a root,
+<br>e.g. if the GTF has chr1, chr2 and chrX, then all other files must use
+those terms or the suffixes without the root, i.e. 1,2 and X.
+</ul>
+<p>
+2nd column: Source
+<ul>
+<li>If the file is from Ensembl, then the source is the type, and only the type of
+"protein_coding" is entered into the database.
+<li>If the file does not contain "protein_coding" for the first 10000 entries, then all
+entries are added and this column is ignored.
+</ul>
+
+<p>3rd column: Feature.
+<ul>
+<li>The feature CDS is required.
+<li>The features exon, start_codon and end_codon are also used if available.
+</ul>
+
+<p>8th column: Attributes.
+<ul>
+<li>Attributes "gene_id" and "transcript_id" are required.
+<br>If you only have genes, then just name the transcript_id the same as the gene_id.
+
+<li>It will use the attribute keywords "gene_name" and "transScript_name" if they are available.
+<ul>
+<li>If you want to add the NCBI annotation (see below), these should be the common names used in NCBI.
+<li>If there is no gene_name or transcript_name, then the "name" will just be geneN and transN
+where N is a sequential number.
+<li>If a gene name is duplicated (i.e. associated with two different gene_id), then a numbered
+suffix is added to the gene name.
+</ul>
+<li>All entries for a gene must be contiguous in the file.
+</ul>
+
+<h3>3. Genome Sequence</h3>
+For input into <tt>runAW</tt>, the genome sequence must be split by chromosome (or contig).
+<br>The filename of the chromosome must correspond to those found in the GTF file, e.g. chr1.fa,
+<br>chr2.fa and chrX.fa. You may use the script <tt>GSsplit.pl</tt>.
+<p>This is used in conjunction with the GTF annotation file to create the spliced nucleotide
+<br>sequences and amino acid sequences, which are written into the project directory.
+<p>The routine was tested using the Ensembl Mouse GTF file. The AW transcript cDNA sequences are exactly like
+<br>the ones from Ensembl, and most of the proteins are the same except for some without start_codon
+<br>and/or end_codon. A small set (0.3%) had no translations (i.e. frame without stop codons), whereas the
+<br>Ensembl proteins were fine; runAW will remark such transcripts; for a future release, the cause
+<br>will be determined and fixed.
+
+
+<h3>3. Variant Call Format file</h3>
+Standard format. You may want to use dbSNP names where possible.
+
+<h3>4. Variant effect (runAW - optional)</h3>
+Either snpEFF or Ensembl variant predictor annotation can be used.
+runAW will expect either of the following two lines at the top:
+<pre>
+## ENSEMBL VARIANT EFFECT PREDICTOR
+##SnpEffVersion
+</pre>
+And will fail if neither are present. This tells runAW/buildAW what the file format is.
+<p>Ensembl Variant Predictor can be run from Ensembl website for specific organisms.
+<br>snpEff is available from //snpeff.sourceforge.net, and is very easy
+<br>to use if your genome sequence is known by it.
+
+
+<h3>5. Gene (NCBI) Annotation (runAW - optional)</h3>
+If your GTF file has "gene_name" that corresponds to LOCUS in Genbank, then you can add the
+<br>gene annotation. Go to NCBI, select database "Protein", search on your organism, then select
+<br>"Send to:", select File, select format GenPept. The lines the AW parser uses are, e.g.
+<pre>
+DEFINITION  transient receptor potential cation channel subfamily V member 6
+/gene="trpv6"
+/gene_synonym="ecac; trpv5-6"
+</pre>
+Where it will match the gene with the GTF gene_name, and enter the DEFINITION and gene_synonym.
+
+
+	<!---- END BODY -->
+	</td></tr>
+	<tr><td style="background-color: #DDDDDD; text-align: center; padding: 0; font-family: Verdana, Arial; font-size: 12px;">
+                        Email Comments To: <a href="mailto:tcw@agcol.arizona.edu">tcw@agcol.arizona.edu</a>
+
+</td></tr>
+</table>
+</body>
+</html>

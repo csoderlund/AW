@@ -1,7 +1,6 @@
 **Description:** The Allele Workbench (AW) is for the analysis of allele-specific expression.
 
-**Download Pipeline.tar.gz:** http://www.agcol.arizona.edu/software/aw.
-	This contains the pipeline perl scripts, external programs and pipeline demo files.
+**Download Pipeline.tar.gz:** The pipeline and demo files are no longer available.
 
 **Download AW_1_1.tar.gz:** https://github.com/csoderlund/AW/releases.
 	This contains the Java code and interface demo files.
